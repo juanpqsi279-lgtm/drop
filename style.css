@@ -1,0 +1,51 @@
+body {
+    background: url('https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=2070&auto=format&fit=crop') no-repeat center center fixed;
+    background-size: cover;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Glassmorphism Classes */
+.glass-panel {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.glass-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+.glass-input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #34d399;
+    outline: none;
+}
+
+/* Neón Effects */
+.neon-text {
+    color: #34d399;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+}
+.neon-border {
+    border: 1px solid #34d399;
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.3), inset 0 0 10px rgba(52, 211, 153, 0.1);
+}
+
+/* Forzar Mapa Dark Mode */
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+    filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+.leaflet-popup-content-wrapper {
+    background: rgba(17, 24, 39, 0.9) !important;
+    color: white !important;
+    border: 1px solid #34d399;
+}
+.leaflet-popup-tip {
+    background: rgba(17, 24, 39, 0.9) !important;
+}

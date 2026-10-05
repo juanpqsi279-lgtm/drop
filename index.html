@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="es" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>drop. — rescata comida cerca de ti</title>
+    <meta name="theme-color" content="#00e676">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cdefs%3E%0A%3ClinearGradient id=%22dpGlass%22 x1=%22.15%22 y1=%220%22 x2=%22.85%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%23fff%22 stop-opacity=%22.8%22/%3E%3Cstop offset=%22.55%22 stop-color=%22%23fff%22 stop-opacity=%22.2%22/%3E%3Cstop offset=%221%22 stop-color=%22%23fff%22 stop-opacity=%22.45%22/%3E%3C/linearGradient%3E%0A%3ClinearGradient id=%22dpRim%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%23fff%22 stop-opacity=%22.95%22/%3E%3Cstop offset=%22.5%22 stop-color=%22%23fff%22 stop-opacity=%22.25%22/%3E%3Cstop offset=%221%22 stop-color=%22%23fff%22 stop-opacity=%22.75%22/%3E%3C/linearGradient%3E%0A%3CradialGradient id=%22dpCore%22 cx=%22.36%22 cy=%22.3%22 r=%22.8%22%3E%3Cstop offset=%220%22 stop-color=%22%23d9ffe9%22/%3E%3Cstop offset=%22.45%22 stop-color=%22%2300e676%22/%3E%3Cstop offset=%221%22 stop-color=%22%2300a152%22/%3E%3C/radialGradient%3E%0A%3C/defs%3E%3Cpath d=%22M32 3C32 3 11 27 11 41a21 21 0 0 0 42 0C53 27 32 3 32 3Z%22 fill=%22rgba(40,200,140,.14)%22 stroke=%22rgba(10,60,40,.22)%22 stroke-width=%221.4%22/%3E%3Cpath d=%22M32 3C32 3 11 27 11 41a21 21 0 0 0 42 0C53 27 32 3 32 3Z%22 fill=%22url(%23dpGlass)%22 stroke=%22url(%23dpRim)%22 stroke-width=%221.6%22/%3E%3Cpath d=%22M19.5 39C19.5 30 26 21 30.5 14.5%22 fill=%22none%22 stroke=%22%23fff%22 stroke-opacity=%22.8%22 stroke-width=%222.4%22 stroke-linecap=%22round%22/%3E%3Ccircle cx=%2232%22 cy=%2242%22 r=%228.5%22 fill=%22url(%23dpCore)%22/%3E%3Ccircle cx=%2229.3%22 cy=%2239.2%22 r=%222.2%22 fill=%22%23fff%22 fill-opacity=%22.9%22/%3E%3C/svg%3E">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' };
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        
+        :root { --bg-base: #f3f4f6; --text-base: #1f2937; --panel-bg: rgba(255, 255, 255, 0.9); --input-bg: rgba(0, 0, 0, 0.05); --input-text: #1f2937; --border-color: rgba(0, 0, 0, 0.1); }
+        .dark { --bg-base: #111827; --text-base: #f9fafb; --panel-bg: rgba(31, 41, 55, 0.85); --input-bg: rgba(255, 255, 255, 0.05); --input-text: #f9fafb; --border-color: rgba(255, 255, 255, 0.1); }
+        .ocean { --bg-base: #083344; --text-base: #cffafe; --panel-bg: rgba(22, 78, 99, 0.85); --input-bg: rgba(255, 255, 255, 0.05); --input-text: #cffafe; --border-color: rgba(6, 182, 212, 0.2); }
+        .sunset { --bg-base: #450a0a; --text-base: #ffedd5; --panel-bg: rgba(127, 29, 29, 0.85); --input-bg: rgba(255, 255, 255, 0.05); --input-text: #ffedd5; --border-color: rgba(239, 68, 68, 0.2); }
+        .forest { --bg-base: #022c22; --text-base: #d1fae5; --panel-bg: rgba(6, 78, 59, 0.85); --input-bg: rgba(255, 255, 255, 0.05); --input-text: #d1fae5; --border-color: rgba(16, 185, 129, 0.2); }
+        .purple { --bg-base: #2e1065; --text-base: #ede9fe; --panel-bg: rgba(76, 29, 149, 0.85); --input-bg: rgba(255, 255, 255, 0.05); --input-text: #ede9fe; --border-color: rgba(139, 92, 246, 0.2); }
+
+        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease, color 0.3s ease; background-color: var(--bg-base); color: var(--text-base); }
+        .glass-panel { background-color: var(--panel-bg); backdrop-filter: blur(20px); border: 1px solid var(--border-color); box-shadow: 0 10px 40px rgba(0,0,0,0.1); border-radius: 24px; transition: all 0.3s; }
+        .glass-input { background-color: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); border-radius: 12px; transition: all 0.2s; }
+        .glass-input::placeholder { color: var(--text-base); opacity: 0.5; }
+        .glass-input:focus { border-color: #00e676; outline: none; background-color: var(--panel-bg); }
+
+        .btn-sg { background: #00e676; color: #004e36; border-radius: 99px; font-weight: 800; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-sg:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 230, 118, 0.3); }
+        .btn-premium { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border-radius: 99px; font-weight: 800; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        body:not(.light) .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%); }
+
+        .tracker-step { display: flex; flex-direction: column; align-items: center; opacity: 0.4; transition: all 0.5s ease; }
+        .tracker-step.active { opacity: 1; transform: scale(1.1); }
+        .tracker-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; background: rgba(128,128,128,0.2); color: var(--text-base); margin-bottom: 8px; }
+        .tracker-step.active .tracker-icon { background: #00e676; color: #004e36; }
+        .tracker-line { flex-grow: 1; height: 4px; background: rgba(128,128,128,0.2); margin: 0 10px; border-radius: 2px; }
+        .tracker-line.active { background: #00e676; }
+    </style>
+    <link rel="stylesheet" href="liquid.css">
+</head>
+<body class="h-screen overflow-hidden flex flex-col antialiased">
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<linearGradient id="dpGlass" x1=".15" y1="0" x2=".85" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".8"/><stop offset=".55" stop-color="#fff" stop-opacity=".2"/><stop offset="1" stop-color="#fff" stop-opacity=".45"/></linearGradient>
+<linearGradient id="dpRim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".5" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#fff" stop-opacity=".75"/></linearGradient>
+<radialGradient id="dpCore" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#d9ffe9"/><stop offset=".45" stop-color="#00e676"/><stop offset="1" stop-color="#00a152"/></radialGradient>
+</defs></svg>
+
+    <div id="toast-container" class="fixed top-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()" class="fixed inset-0 bg-black/50 z-[100] hidden backdrop-blur-sm transition-opacity"></div>
+    <aside id="sidebar" class="fixed left-0 top-0 h-full w-80 glass-panel z-[101] transform -translate-x-full transition-transform duration-300 flex flex-col p-6 rounded-none rounded-r-3xl overflow-y-auto hide-scroll">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-extrabold">Ajustes</h2>
+            <button onclick="toggleSidebar()" class="text-2xl opacity-50 hover:opacity-100"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="flex items-center gap-4 mb-8">
+            <div class="w-14 h-14 rounded-full bg-gray-500/20 flex items-center justify-center text-2xl relative">
+                <i class="fa-solid fa-user-astronaut"></i>
+                <i id="sb-star" class="fa-solid fa-star absolute -bottom-1 -right-1 text-yellow-400 text-sm hidden"></i>
+            </div>
+            <div>
+                <h3 id="sb-nombre" class="font-bold text-lg">Usuario</h3>
+                <p id="sb-rango" class="text-xs opacity-70">Rango: Novato</p>
+            </div>
+        </div>
+        <nav class="space-y-4 flex-grow">
+            <button onclick="abrirPerfil()" class="w-full text-left flex items-center gap-4 text-lg font-semibold hover:opacity-70 transition"><i class="fa-solid fa-circle-user w-6"></i> Mi Perfil</button>
+            <button id="btn-sidebar-opiniones" onclick="abrirOpiniones()" class="w-full text-left flex items-center gap-4 text-lg font-semibold hover:opacity-70 transition"><i class="fa-solid fa-star w-6 text-yellow-400"></i> Opiniones</button>
+            <hr class="border-[var(--border-color)] my-4">
+            
+            <button id="btn-sidebar-premium" onclick="abrirPremiumModal()" class="w-full text-left flex items-center gap-4 text-lg font-extrabold text-amber-500 hover:text-amber-400 transition"><i class="fa-solid fa-crown w-6"></i> Ser Premium</button>
+            
+            <hr class="border-[var(--border-color)] my-4">
+            
+            <div>
+                <span class="font-semibold flex items-center gap-4 mb-3"><i class="fa-solid fa-palette w-6"></i> Temas <span id="lbl-tema-prem" class="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full hidden">Premium</span></span>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="setTheme('light')" class="w-full h-8 bg-[#f3f4f6] border-2 border-gray-300 rounded-lg shadow-sm"></button>
+                    <button onclick="setTheme('dark')" class="w-full h-8 bg-[#111827] border-2 border-gray-600 rounded-lg shadow-sm"></button>
+                    <button onclick="setTheme('ocean')" class="tema-prem w-full h-8 bg-[#083344] border-2 border-cyan-800 rounded-lg shadow-sm opacity-30 cursor-not-allowed"><i class="lock-ico fa-solid fa-lock text-xs text-white"></i></button>
+                    <button onclick="setTheme('sunset')" class="tema-prem w-full h-8 bg-[#450a0a] border-2 border-red-800 rounded-lg shadow-sm opacity-30 cursor-not-allowed"><i class="lock-ico fa-solid fa-lock text-xs text-white"></i></button>
+                    <button onclick="setTheme('forest')" class="tema-prem w-full h-8 bg-[#022c22] border-2 border-emerald-800 rounded-lg shadow-sm opacity-30 cursor-not-allowed"><i class="lock-ico fa-solid fa-lock text-xs text-white"></i></button>
+                    <button onclick="setTheme('purple')" class="tema-prem w-full h-8 bg-[#2e1065] border-2 border-purple-800 rounded-lg shadow-sm opacity-30 cursor-not-allowed"><i class="lock-ico fa-solid fa-lock text-xs text-white"></i></button>
+                </div>
+            </div>
+        </nav>
+        <button onclick="cerrarSesion()" class="mt-8 w-full bg-red-500/10 text-red-500 font-bold py-3 rounded-xl hover:bg-red-500 hover:text-white transition">Cerrar Sesión</button>
+    </aside>
+
+    <!-- PANTALLAS LOGIN Y REGISTRO -->
+    <main id="vista-login" class="w-full h-full absolute inset-0 z-50 flex items-center justify-center p-4 transition-transform duration-500">
+        <div class="glass-panel p-8 w-full max-w-md shadow-2xl">
+            <h1 class="flex items-center justify-center gap-3 mb-2"><span data-drop-logo="64"></span><span class="drop-word text-6xl">drop<span>.</span></span></h1>
+            <p class="text-center mb-8 font-semibold text-sm opacity-70">Inicia sesión para atrapar tus drops.</p>
+            
+            <div id="div-login">
+                <form onsubmit="procesarLogin(event)" class="space-y-4">
+                    <input type="email" id="login-email" placeholder="Correo" required class="w-full glass-input px-4 py-3 font-semibold">
+                    <input type="password" id="login-password" placeholder="Contraseña" required class="w-full glass-input px-4 py-3 font-semibold">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="remember-me" class="mr-2 rounded">
+                        <label for="remember-me" class="text-sm font-semibold opacity-80">Recordar mi sesión</label>
+                    </div>
+                    <button type="submit" class="w-full btn-sg py-4 text-lg shadow-lg">Entrar</button>
+                </form>
+                <p class="mt-6 text-center text-sm font-bold opacity-80">¿No tienes cuenta? <button onclick="toggleModo('registro')" class="text-[#00e676] hover:underline">Regístrate</button></p>
+            </div>
+
+            <div id="div-registro" class="hidden">
+                <div class="flex gap-2 mb-4 bg-gray-500/10 p-1 rounded-xl">
+                    <button type="button" onclick="setRolReg('cliente')" id="btn-reg-cliente" class="flex-1 bg-[var(--panel-bg)] shadow py-2 rounded-lg font-bold text-[#00e676]">Cliente</button>
+                    <button type="button" onclick="setRolReg('restaurante')" id="btn-reg-rest" class="flex-1 py-2 rounded-lg font-bold opacity-50 hover:opacity-100">Restaurante</button>
+                </div>
+                <form onsubmit="procesarRegistro(event)" class="space-y-3">
+                    <input type="text" id="reg-nombre" placeholder="Nombre Completo" required class="w-full glass-input px-4 py-3 font-semibold">
+                    <input type="email" id="reg-email" placeholder="Correo" required class="w-full glass-input px-4 py-3 font-semibold">
+                    <input type="password" id="reg-password" placeholder="Contraseña (Mín 6)" required minlength="6" class="w-full glass-input px-4 py-3 font-semibold">
+                    <div id="campos-restaurante" class="hidden space-y-3 pt-2">
+                        <p class="text-xs opacity-70 font-semibold">Publica tus Drops del día y llega a quienes buscan comida cerca de ti.</p>
+                        <input type="text" id="reg-comercial" placeholder="Nombre Local" class="w-full glass-input px-4 py-3 font-semibold">
+                        <div class="flex gap-2">
+                            <input type="text" id="reg-direccion" placeholder="Ej. Centro, Victoria" class="w-full glass-input px-4 py-3 font-semibold">
+                            <button type="button" onclick="buscarDireccion()" class="bg-[#00e676] text-[#004e36] px-4 rounded-xl shadow"><i class="fa-solid fa-search"></i></button>
+                        </div>
+                        <div id="mapa-mini" class="w-full h-32 rounded-xl hidden border border-[var(--border-color)]"></div>
+                        <input type="hidden" id="reg-lat"><input type="hidden" id="reg-lng">
+                    </div>
+                    <button type="submit" class="w-full btn-sg py-4 mt-4">Crear Cuenta</button>
+                </form>
+                <p class="mt-4 text-center text-sm font-bold opacity-80">¿Ya tienes cuenta? <button onclick="toggleModo('login')" class="text-[#00e676] hover:underline">Inicia Sesión</button></p>
+            </div>
+        </div>
+    </main>
+
+    <!-- NAVEGACIÓN GLOBAL -->
+    <nav id="nav-global" class="hidden glass-panel mx-4 mt-4 px-4 py-3 flex justify-between items-center z-40 rounded-full">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="text-2xl hover:text-[#00e676]"><i class="fa-solid fa-bars-staggered"></i></button>
+            <h1 class="flex items-center gap-2"><span data-drop-logo="32"></span><span class="drop-word text-2xl hidden md:inline">drop<span>.</span></span></h1>
+        </div>
+        <div id="nav-buscador" class="flex-grow max-w-xl mx-4 relative hidden">
+            <i class="fa-solid fa-search absolute left-4 top-3.5 opacity-50"></i>
+            <input type="text" id="buscador-global" onkeyup="buscarPlatillos(event)" placeholder="Buscar platillos..." class="w-full glass-input rounded-full pl-10 pr-4 py-3 font-semibold text-sm">
+        </div>
+        <div id="nav-admin-title" class="hidden font-black text-xl mx-auto">Panel Administrador</div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleModal('modal-notis')" class="relative text-xl w-10 h-10 rounded-full bg-gray-500/10 flex items-center justify-center hover:bg-[#00e676]/20 transition">
+                <i class="fa-solid fa-bell"></i><div id="badge-notis" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden font-bold">0</div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- UI CLIENTE (SUPERAPP) -->
+    <main id="vista-cliente" class="hidden flex w-full h-full pt-20 px-4 pb-4 overflow-y-auto hide-scroll flex-col gap-6">
+        <div id="banner-bloqueo" class="hidden glass-panel p-4 border-l-4 border-red-500 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 mt-4"><div><div class="font-extrabold text-red-500"><i class="fa-solid fa-ban mr-2"></i>Cuenta bloqueada por 3 strikes</div><p class="text-xs opacity-70">No reclamaste tus pedidos a tiempo. Puedes apelar y un administrador decidirá.</p></div><button onclick="toggleModal('modal-apelar-strikes')" class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow">Apelar bloqueo</button></div>
+        <div class="flex flex-col md:flex-row gap-4 items-center glass-panel p-4 rounded-2xl shrink-0 mt-4">
+            <div class="flex-grow flex gap-2 w-full">
+                <button onclick="geolocalizar()" class="bg-[#00e676] text-[#004e36] px-4 rounded-xl shadow font-bold"><i class="fa-solid fa-location-crosshairs"></i></button>
+                <input type="text" id="input-ubicacion" placeholder="Tu dirección actual..." class="w-full glass-input px-4 py-3 font-semibold text-sm">
+                <button onclick="buscarUbicacion()" class="bg-gray-500/20 px-4 rounded-xl font-bold hover:bg-gray-500/40">Ir</button>
+            </div>
+            <div class="bg-gray-500/10 rounded-xl p-1 flex shrink-0 gap-1 overflow-x-auto">
+                <button onclick="cambiarTransporte('pie')" id="btn-t-pie" class="px-3 py-2 rounded-lg text-sm font-bold bg-[var(--panel-bg)] shadow transition"><i class="fa-solid fa-person-walking"></i></button>
+                <button onclick="cambiarTransporte('bici')" id="btn-t-bici" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bicycle"></i></button>
+                <button onclick="cambiarTransporte('bus')" id="btn-t-bus" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bus"></i></button>
+                <button onclick="cambiarTransporte('moto')" id="btn-t-moto" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-motorcycle"></i></button>
+                <button onclick="cambiarTransporte('auto')" id="btn-t-auto" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-car"></i></button>
+            </div>
+        </div>
+
+        <div id="mapa-container" class="relative w-full h-48 rounded-3xl overflow-hidden shadow-lg border-2 border-[var(--border-color)] shrink-0 transition-all duration-500">
+            <div id="mapa" class="w-full h-full z-0"></div>
+            <button onclick="toggleMapa()" class="absolute bottom-4 right-4 z-10 bg-black/50 text-white p-3 rounded-full shadow-lg backdrop-blur text-xl hover:bg-black/80"><i class="fa-solid fa-expand" id="icon-expand"></i></button>
+        </div>
+
+        <div class="shrink-0">
+            <div class="flex gap-4 overflow-x-auto hide-scroll pb-2">
+                <div onclick="filtrarCategoria('Pizzería')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🍕</div><div class="font-bold text-sm">Pizzería</div></div>
+                <div onclick="filtrarCategoria('Rápida')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🍔</div><div class="font-bold text-sm">Rápida</div></div>
+                <div onclick="filtrarCategoria('Saludable')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🥗</div><div class="font-bold text-sm">Saludable</div></div>
+                <div onclick="filtrarCategoria('Fondita')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🌮</div><div class="font-bold text-sm">Fondita</div></div>
+            </div>
+        </div>
+
+        <div class="flex-grow">
+            <h2 class="text-xl font-extrabold mb-4 flex justify-between">Drops Activos <button onclick="filtrarCategoria('')" class="text-sm opacity-50 hover:opacity-100 transition">Ver Todos</button></h2>
+            <div id="ui-platillos" class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-24"></div>
+        </div>
+    </main>
+
+    <!-- UI DASHBOARDS (RESTAURANTE Y ADMIN) -->
+    <main id="area-trabajo" class="hidden w-full h-full pt-28 px-4 pb-4 overflow-y-auto hide-scroll">
+        <div class="max-w-5xl mx-auto w-full space-y-6">
+            
+            <div id="aviso-pendiente" class="hidden glass-panel p-12 text-center text-orange-500">
+                <i class="fa-solid fa-clock text-6xl mb-4 animate-pulse"></i>
+                <h2 class="text-2xl font-extrabold mb-2">Verificación en Proceso</h2>
+                <p class="font-medium opacity-80">Estamos verificando tu local. En cuanto te aprueben podrás publicar tus Drops del día.</p>
+            </div>
+
+            <div id="vista-restaurante" class="hidden space-y-6">
+                <div class="glass-panel p-5 flex items-center gap-4 border-l-4 border-[#00e676]"><span data-drop-logo="44" class="shrink-0"></span><div><h2 class="text-lg font-black">Publica tus Drops del día</h2><p class="text-sm opacity-70">Lanza ofertas flash exclusivas: sube el stock de tus platillos y aparecerán al instante en el radar de tu zona.</p></div></div>
+                <div id="kpis-rest" class="grid grid-cols-3 gap-4"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6 border-t-4 border-amber-500">
+                        <h3 class="font-extrabold mb-4 text-amber-500"><i class="fa-solid fa-crown"></i> Drops atrapados · VIP</h3>
+                        <div id="lista-entregas-vip" class="space-y-3">Sin VIPs esperando.</div>
+                    </div>
+                    <div class="glass-panel p-6 border-t-4 border-[#00e676]">
+                        <h3 class="font-extrabold mb-4 text-[#00e676]"><i class="fa-solid fa-bell-concierge"></i> Drops atrapados</h3>
+                        <div id="lista-entregas-normal" class="space-y-3">Sin clientes normales.</div>
+                    </div>
+                </div>
+                <div class="glass-panel p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="font-extrabold text-xl">Mis Drops</h3>
+                        <button onclick="toggleModal('modal-crear-platillo')" class="bg-blue-500 text-white px-4 py-2 rounded-xl font-bold text-sm shadow">+ Nuevo Drop</button>
+                    </div>
+                    <div id="lista-menu-rest" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">Cargando menú...</div>
+                </div>
+            </div>
+
+            <div id="vista-admin" class="hidden">
+                <div id="kpis-admin" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"></div>
+                <div class="flex gap-2 overflow-x-auto hide-scroll mb-6 glass-panel p-2">
+                    <button onclick="tabAdmin('tab-aprobar')" id="btn-tab-aprobar" class="px-4 py-2 bg-gray-500/20 rounded-lg font-bold flex-1">Locales</button>
+                    <button onclick="tabAdmin('tab-sol-prem')" id="btn-tab-sol-prem" class="px-4 py-2 rounded-lg font-bold opacity-50 flex-1">Solicitudes</button>
+                    <button onclick="tabAdmin('tab-gest-prem')" id="btn-tab-gest-prem" class="px-4 py-2 rounded-lg font-bold opacity-50 flex-1">Premium</button>
+                    <button onclick="tabAdmin('tab-apelar')" id="btn-tab-apelar" class="px-4 py-2 rounded-lg font-bold opacity-50 flex-1">Apel. Premium</button>
+                    <button onclick="tabAdmin('tab-strikes')" id="btn-tab-strikes" class="px-4 py-2 rounded-lg font-bold opacity-50 flex-1">Apel. Bloqueo</button>
+                    <button onclick="tabAdmin('tab-usuarios')" id="btn-tab-usuarios" class="px-4 py-2 rounded-lg font-bold opacity-50 flex-1">Usuarios</button>
+                </div>
+                
+                <div id="tab-aprobar" class="glass-panel p-6 admin-tab"><h3 class="font-extrabold mb-4">Aprobar Restaurantes</h3><table class="w-full text-left text-sm"><tbody id="tabla-admin" class="divide-y divide-[var(--border-color)]"></tbody></table></div>
+                <div id="tab-sol-prem" class="glass-panel p-6 admin-tab hidden"><h3 class="font-extrabold mb-4 text-amber-500">Solicitudes Premium</h3><div id="lista-sol-prem" class="space-y-2"></div></div>
+                <div id="tab-gest-prem" class="glass-panel p-6 admin-tab hidden"><h3 class="font-extrabold mb-4 text-purple-500">Gestor de Usuarios Premium</h3><div id="lista-gest-prem" class="space-y-4"></div></div>
+                <div id="tab-apelar" class="glass-panel p-6 admin-tab hidden"><h3 class="font-extrabold mb-4 text-red-500">Apelaciones de Revocación</h3><div id="lista-apelaciones" class="space-y-4"></div></div>
+                <div id="tab-strikes" class="glass-panel p-6 admin-tab hidden"><h3 class="font-extrabold mb-4 text-orange-500">Apelaciones de Bloqueo (3 strikes)</h3><div id="lista-apel-strikes" class="space-y-4"></div></div>
+                <div id="tab-usuarios" class="glass-panel p-6 admin-tab hidden"><div class="flex justify-between items-center mb-4"><h3 class="font-extrabold">Usuarios y Restaurantes</h3><button onclick="abrirModalUsuario()" class="btn-sg px-4 py-2 text-sm">+ Nuevo</button></div><div id="lista-usuarios" class="space-y-2 max-h-[60vh] overflow-y-auto hide-scroll"></div></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DETALLE DE PLATILLO -->
+    <div id="modal-platillo" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-end md:items-center justify-center transition-opacity">
+        <div class="w-full max-w-md glass-panel !p-0 overflow-hidden shadow-2xl relative" id="modal-platillo-content">
+            <div class="relative h-48 bg-gray-200">
+                <img id="det-img" src="" class="w-full h-full object-cover">
+                <button onclick="cerrarDetalle()" class="absolute top-4 right-4 bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center text-xl hover:bg-black/80 transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="flex justify-between items-start mb-2"><h2 id="det-nombre" class="text-2xl font-extrabold leading-tight">Nombre</h2><span id="det-disp" class="bg-[#00e676]/20 text-[#00e676] px-3 py-1 rounded-full font-bold text-sm">0 Quedan</span></div>
+                <p id="det-rest" class="text-sm font-bold opacity-60 mb-4"><i class="fa-solid fa-store mr-1"></i> Restaurante</p>
+                <p id="det-desc" class="text-sm mb-6 opacity-80">Descripción.</p>
+                <div class="flex items-center justify-center gap-5 mb-4"><button onclick="cambiarCantidad(-1)" class="w-10 h-10 rounded-full bg-gray-500/20 text-xl font-bold">−</button><span id="det-cant" class="text-3xl font-black w-10 text-center">1</span><button onclick="cambiarCantidad(1)" class="w-10 h-10 rounded-full bg-gray-500/20 text-xl font-bold">+</button></div>
+            <button id="btn-confirmar-pedido" class="w-full btn-sg py-4 font-black text-lg flex items-center justify-center gap-2 shadow-lg"><i class="fa-solid fa-bag-shopping"></i> Atrapar Drop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tracker Flotante Domino's -->
+    <div id="widget-tracker" class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[95%] max-w-2xl glass-panel p-6 z-[150] shadow-2xl border-2 border-[#00e676]">
+        <div class="flex justify-between items-end mb-6">
+            <div><h3 class="font-extrabold text-xl" id="trk-restaurante">Cargando...</h3><p class="text-sm font-bold text-[#00e676]">Cód: <span id="trk-codigo" class="font-mono bg-[#00e676]/20 px-2 rounded text-[#00e676]">---</span></p></div>
+            <div class="text-right"><div class="text-xs uppercase font-bold opacity-50">Tiempo para recoger</div><div id="trk-timer" class="text-3xl font-black text-orange-500">30:00</div></div>
+        </div>
+        <div class="flex justify-between items-center px-4">
+            <div class="tracker-step active" id="step-1"><div class="tracker-icon"><i class="fa-solid fa-mobile-screen"></i></div><span class="text-[10px] font-bold uppercase mt-1">Atrapado</span></div><div class="tracker-line" id="line-1"></div>
+            <div class="tracker-step" id="step-2"><div class="tracker-icon"><i class="fa-solid fa-fire-burner"></i></div><span class="text-[10px] font-bold uppercase mt-1">Preparando</span></div><div class="tracker-line" id="line-2"></div>
+            <div class="tracker-step" id="step-3"><div class="tracker-icon"><i class="fa-solid fa-bag-shopping"></i></div><span class="text-[10px] font-bold uppercase mt-1">Listo</span></div><div class="tracker-line" id="line-3"></div>
+            <div class="tracker-step" id="step-4"><div class="tracker-icon"><i class="fa-solid fa-face-smile-tasting"></i></div><span class="text-[10px] font-bold uppercase mt-1">Entregado</span></div>
+        </div>
+        <button id="btn-trk-accion" onclick="solicitarEntrega()" class="mt-8 w-full btn-sg py-4 font-extrabold text-lg flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition"><i class="fa-solid fa-location-arrow"></i> Llegué al Local</button>
+        <div id="lbl-estado-entrega" class="text-center text-sm font-bold text-orange-500 mt-4 hidden animate-pulse">Drop asegurado. Notificando al local...</div>
+    </div>
+
+    <!-- Modales Sistema Premium -->
+    <div id="modal-premium-main" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative border-t-4 border-amber-500">
+            <button onclick="toggleModal('modal-premium-main')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <div class="text-5xl text-amber-500 mb-4"><i class="fa-solid fa-crown"></i></div>
+            <h2 class="text-2xl font-black mb-2">drop. Premium</h2>
+            <p class="text-sm opacity-70 mb-6 font-medium">Desbloquea pedidos prioritarios y todos los temas visuales con una KEY de activación.</p>
+            <input type="text" id="input-key" placeholder="INGRESA TU KEY AQUÍ" class="w-full glass-input text-center font-mono font-black text-xl py-3 rounded-xl mb-4 tracking-widest uppercase">
+            <button onclick="activarPremium()" class="w-full btn-premium py-4 text-lg mb-2 shadow-lg">Aceptar y Activar</button>
+            <button onclick="toggleModal('modal-premium-main'); toggleModal('modal-solicitar-key');" class="w-full py-3 font-bold opacity-60 hover:opacity-100 transition">No tengo KEY, conseguir una.</button>
+        </div>
+    </div>
+
+    <div id="modal-solicitar-key" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative">
+            <button onclick="toggleModal('modal-solicitar-key')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-black mb-2 text-amber-500">Solicitar Acceso</h2>
+            <p class="text-sm opacity-70 mb-6">El administrador evaluará tu solicitud.</p>
+            <input type="text" id="sol-nombre" placeholder="Tu Nombre Completo" class="w-full glass-input px-4 py-3 rounded-xl mb-4 font-bold">
+            <button onclick="enviarSolicitudPremium()" class="w-full btn-sg py-3 font-bold">Enviar Solicitud</button>
+        </div>
+    </div>
+
+    <div id="modal-apelar" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative border-t-4 border-red-500">
+            <button onclick="toggleModal('modal-apelar')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-black mb-2 text-red-500">Apelar Revocación</h2>
+            <p class="text-sm opacity-70 mb-4">Justifica por qué deberías recuperar tus beneficios Premium.</p>
+            <textarea id="texto-apelacion" class="w-full glass-input p-3 rounded-xl mb-4 text-sm font-medium" rows="4" placeholder="Mi caso es injusto porque..."></textarea>
+            <button onclick="enviarApelacion()" class="w-full bg-red-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-red-600 transition">Enviar Apelación</button>
+        </div>
+    </div>
+
+    <!-- Modal Perfil, Notis y Reseña -->
+    <div id="modal-perfil" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative">
+            <button onclick="toggleModal('modal-perfil')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <div class="w-24 h-24 mx-auto rounded-full bg-gray-500/20 border-2 flex items-center justify-center text-4xl mb-2 relative">
+                <i class="fa-solid fa-user-astronaut"></i>
+                <i id="prof-star" class="fa-solid fa-crown absolute -top-2 -right-2 text-amber-500 text-2xl hidden drop-shadow-md"></i>
+            </div>
+            <h3 class="font-extrabold text-2xl" id="prof-nombre-v">Usuario</h3>
+            <p id="prof-strikes" class="text-xs font-bold opacity-70 mt-1"></p>
+            
+            <div id="btn-apelar-container" class="hidden mt-4">
+                <div class="bg-red-500/10 border border-red-500 p-3 rounded-xl">
+                    <p class="text-xs text-red-500 font-bold mb-2">Tu licencia Premium fue revocada.</p>
+                    <button onclick="abrirApelacion()" class="w-full bg-red-500 text-white py-2 rounded-lg text-sm font-bold shadow-lg transition hover:bg-red-600">Apelar Decisión</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="glass-input p-4 rounded-xl"><div class="text-[10px] font-bold uppercase opacity-50">Reputación</div><div class="text-xl font-black text-amber-500" id="prof-estrellas">5.0 <i class="fa-solid fa-star text-xs"></i></div></div>
+                <div class="glass-input p-4 rounded-xl"><div class="text-[10px] font-bold uppercase opacity-50">Puntos</div><div class="text-xl font-black text-[#00e676]" id="prof-puntos">0</div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-notis" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-end">
+        <div class="w-full max-w-sm h-full glass-panel rounded-none rounded-l-3xl p-6 flex flex-col relative">
+            <div class="flex justify-between items-center mb-6"><h2 class="text-xl font-extrabold">Inbox</h2><button onclick="toggleModal('modal-notis')" class="text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button></div>
+            <div id="lista-notis" class="space-y-3 overflow-y-auto hide-scroll pb-6"></div>
+        </div>
+    </div>
+
+    <div id="modal-crear-platillo" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-md glass-panel p-6 relative">
+            <button onclick="toggleModal('modal-crear-platillo')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-extrabold mb-4">Añadir Platillo al Menú</h2>
+            <div class="space-y-3">
+                <input type="text" id="cp-nombre" placeholder="Nombre (Ej. Pizza Mexicana)" class="w-full glass-input px-3 py-2 font-bold">
+                <input type="text" id="cp-desc" placeholder="Descripción breve" class="w-full glass-input px-3 py-2 text-sm">
+                <select id="cp-cat" class="w-full glass-input px-3 py-2 font-bold"><option value="Pizzería">Pizzería</option><option value="Rápida">Comida Rápida</option><option value="Saludable">Saludable</option><option value="Fondita">Fondita/Guisos</option></select>
+                <input type="number" id="cp-disp" placeholder="Cantidad inicial" class="w-full glass-input px-3 py-2 font-bold">
+                <button onclick="crearPlatilloManual()" class="w-full btn-sg py-3 font-bold mt-2 shadow-lg">Guardar Platillo</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-resena" class="hidden fixed inset-0 bg-black/70 backdrop-blur-md z-[250] flex items-center justify-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative">
+            <button onclick="toggleModal('modal-resena')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <div class="text-5xl mb-4 text-yellow-400"><i class="fa-solid fa-face-grin-stars"></i></div>
+            <h2 id="rs-titulo" class="text-2xl font-extrabold mb-2">¡Drop rescatado!</h2>
+            <p id="rs-sub" class="text-sm opacity-60 mb-6 font-medium">Califica tu experiencia.</p>
+            <div class="flex justify-center gap-2 text-3xl opacity-30 mb-6" id="estrellas-rating">
+                <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 hover:opacity-100 transition" onclick="setRating(1)"></i>
+                <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 hover:opacity-100 transition" onclick="setRating(2)"></i>
+                <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 hover:opacity-100 transition" onclick="setRating(3)"></i>
+                <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 hover:opacity-100 transition" onclick="setRating(4)"></i>
+                <i class="fa-solid fa-star cursor-pointer hover:text-amber-400 hover:opacity-100 transition" onclick="setRating(5)"></i>
+            </div>
+            <textarea id="resena-texto" class="w-full glass-input p-3 text-sm font-medium mb-4" placeholder="Escribe tu opinión..."></textarea>
+            <button onclick="enviarResena()" class="w-full btn-sg py-4 font-extrabold shadow-lg">Enviar</button>
+        </div>
+    </div>
+
+
+    <div id="modal-apelar-strikes" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-sm glass-panel p-8 text-center relative border-t-4 border-orange-500">
+            <button onclick="toggleModal('modal-apelar-strikes')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 class="text-xl font-black mb-2 text-orange-500">Apelar Bloqueo</h2>
+            <p class="text-sm opacity-70 mb-4">Explica por qué no pudiste reclamar tus pedidos. Un administrador revisará tu caso.</p>
+            <textarea id="texto-apel-strikes" class="w-full glass-input p-3 rounded-xl mb-4 text-sm font-medium" rows="4" placeholder="No pude llegar porque..."></textarea>
+            <button onclick="enviarApelacionStrikes()" class="w-full btn-sg py-3 font-bold">Enviar Apelación</button>
+        </div>
+    </div>
+
+    <div id="modal-usuario" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-md glass-panel p-6 relative max-h-[90vh] overflow-y-auto hide-scroll">
+            <button onclick="toggleModal('modal-usuario')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 id="mu-titulo" class="text-xl font-extrabold mb-4">Nuevo usuario</h2>
+            <input type="hidden" id="mu-id">
+            <div class="space-y-3">
+                <select id="mu-rol" onchange="document.getElementById('mu-extra').classList.toggle('hidden', this.value !== 'restaurante')" class="w-full glass-input px-3 py-2 font-bold"><option value="cliente">Cliente</option><option value="restaurante">Restaurante</option><option value="admin">Administrador</option></select>
+                <input type="text" id="mu-nombre" placeholder="Nombre" class="w-full glass-input px-3 py-2 font-bold">
+                <input type="email" id="mu-correo" placeholder="Correo" class="w-full glass-input px-3 py-2 font-bold">
+                <input type="password" id="mu-password" placeholder="Contraseña (mín. 6)" class="w-full glass-input px-3 py-2 font-bold">
+                <div class="flex gap-2"><select id="mu-estado" class="w-full glass-input px-3 py-2 font-bold"><option value="aprobado">Aprobado</option><option value="pendiente">Pendiente</option><option value="baja">Baja</option></select><input type="number" id="mu-strikes" min="0" placeholder="Strikes" class="w-28 glass-input px-3 py-2 font-bold"></div>
+                <div id="mu-extra" class="hidden space-y-3"><input type="text" id="mu-comercial" placeholder="Nombre del local" class="w-full glass-input px-3 py-2 font-bold"><input type="text" id="mu-direccion" placeholder="Dirección" class="w-full glass-input px-3 py-2"><div class="flex gap-2"><input type="number" step="any" id="mu-lat" placeholder="Latitud" class="w-full glass-input px-3 py-2 text-sm"><input type="number" step="any" id="mu-lng" placeholder="Longitud" class="w-full glass-input px-3 py-2 text-sm"></div></div>
+                <button onclick="guardarUsuario()" class="w-full btn-sg py-3 font-bold mt-2">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="modal-opiniones" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex justify-center items-center p-4">
+        <div class="w-full max-w-lg glass-panel p-6 relative max-h-[85vh] overflow-y-auto hide-scroll">
+            <button onclick="document.getElementById('modal-opiniones').classList.add('hidden')" class="absolute top-4 right-4 text-2xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            <h2 id="op-titulo" class="text-xl font-extrabold mb-4"><i class="fa-solid fa-star text-yellow-400 mr-2"></i>Opiniones</h2>
+            <div id="op-resumen" class="glass-input p-4 mb-5 flex items-center gap-4"></div>
+            <div id="op-pendientes" class="hidden mb-5"><h3 class="text-xs uppercase font-bold opacity-60 mb-2">Por calificar</h3><div id="op-pend-lista" class="space-y-2"></div></div>
+            <h3 class="text-xs uppercase font-bold opacity-60 mb-2">Lo que opinan de ti</h3>
+            <div id="op-lista" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // --- ESTADO GLOBAL ---
+        const API = window.API_URL || 'http://localhost:3000', TEMAS_PREMIUM = ['ocean', 'sunset', 'forest', 'purple'];
+        const _fetch = window.fetch.bind(window); let sesionExpirada = false;
+        window.fetch = async (url, opts = {}) => { // agrega el JWT a cada petición a la API y cierra sesión si expira
+            url = String(url).replace('http://localhost:3000', API);
+            if (url.startsWith(API) && typeof usuarioActivo !== 'undefined' && usuarioActivo && usuarioActivo.token) opts = { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + usuarioActivo.token } };
+            const r = await _fetch(url, opts);
+            if (r.status === 401 && !url.includes('/api/login') && !sesionExpirada && typeof usuarioActivo !== 'undefined' && usuarioActivo) { sesionExpirada = true; mostrarToast('Tu sesión expiró. Inicia sesión de nuevo.', 'error'); setTimeout(cerrarSesion, 1500); }
+            return r;
+        };
+        let premPrevio = null, resenaCtx = null, cantidadSel = 1, maxCantidad = 1, usuariosCache = [];
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        let usuarioActivo = null, revocadoActivo = false, miMapa = null, miniMapa = null, mrkMini = null, marcadores = [], circuloRango = null;
+        let mapPolling = null, temporizadorInterval = null, pollingInterval = null, notisPolling = null, adminPolling = null;
+        let pedidoParaResenar = null, pedidoActualId = null, restauranteAcalificar = null, ratingTemp = 5;
+        let transporteActivo = 'pie', usuarioLat = 23.7369, usuarioLng = -99.1411, categoriaFiltro = '', busquedaActual = '', mapaExpandido = false;
+
+        // --- CORE UI Y TEMAS ---
+        window.onload = () => {
+            const savedUser = localStorage.getItem('rappicero_user');
+            if (savedUser) { usuarioActivo = JSON.parse(savedUser); cargarInterfaz(); }
+            aplicarTemaGuardado();
+        };
+
+        function aplicarTemaGuardado() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.className = savedTheme;
+            { const tg = document.getElementById('theme-toggle'); if(tg) tg.checked = (savedTheme !== 'light'); }
+            if(miMapa) {
+                const layer = document.querySelector('.leaflet-layer');
+                if(layer) layer.style.filter = (savedTheme !== 'light') ? 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' : 'none';
+            }
+        }
+
+        
+        
+        function setTheme(theme) {
+            if(['ocean', 'sunset', 'forest', 'purple'].includes(theme) && (!usuarioActivo || !usuarioActivo.is_premium)) {
+                return mostrarToast("Tema exclusivo para usuarios Premium", "error");
+            }
+            document.documentElement.className = theme; localStorage.setItem('theme', theme);
+            { const tg = document.getElementById('theme-toggle'); if(tg) tg.checked = (theme !== 'light'); }
+            aplicarTemaGuardado();
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); document.getElementById('sidebar-overlay').classList.toggle('hidden'); }
+        function toggleModal(id) { const m = document.getElementById(id); m.classList.toggle('hidden'); if(id === 'modal-notis' && !m.classList.contains('hidden')) marcarNotisLeidas(); }
+        function toggleModo(m) { document.getElementById('div-login').classList.toggle('hidden', m !== 'login'); document.getElementById('div-registro').classList.toggle('hidden', m === 'login'); }
+        function cerrarDetalle() { document.getElementById('modal-platillo').classList.add('hidden'); }
+
+        function mostrarToast(msg, tipo = 'success') {
+            const container = document.getElementById('toast-container'), t = document.createElement('div');
+            t.className = `glass-panel px-6 py-3 border-l-4 ${tipo==='success'?'border-[#00e676]':'border-red-500'} flex items-center gap-3 transition transform translate-x-full shadow-lg mb-2`;
+            t.innerHTML = `<i class="fa-solid ${tipo==='success'?'fa-check text-[#00e676]':'fa-xmark text-red-500'}"></i> <span class="font-bold text-sm">${msg}</span>`;
+            container.appendChild(t); setTimeout(() => t.classList.remove('translate-x-full'), 10);
+            setTimeout(() => { t.classList.add('translate-x-full'); setTimeout(()=>t.remove(), 300); }, 3500);
+        }
+
+        let rolRegistro = 'cliente';
+        function setRolReg(rol) {
+            rolRegistro = rol;
+            document.getElementById('btn-reg-cliente').className = `flex-1 py-2 rounded-lg font-bold ${rol==='cliente'?'bg-[var(--panel-bg)] shadow text-[#00e676]':'opacity-50 hover:opacity-100'}`;
+            document.getElementById('btn-reg-rest').className = `flex-1 py-2 rounded-lg font-bold ${rol==='restaurante'?'bg-[var(--panel-bg)] shadow text-[#00e676]':'opacity-50 hover:opacity-100'}`;
+            document.getElementById('campos-restaurante').classList.toggle('hidden', rol === 'cliente');
+        }
+
+        // --- AUTH ---
+        async function buscarDireccion() {
+            const dir = document.getElementById('reg-direccion').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dir + ' Ciudad Victoria')}`);
+            const data = await res.json();
+            if(data.length > 0) {
+                const lat = data[0].lat, lng = data[0].lon;
+                document.getElementById('reg-lat').value = lat; document.getElementById('reg-lng').value = lng;
+                document.getElementById('mapa-mini').classList.remove('hidden');
+                if(!miniMapa) { miniMapa = L.map('mapa-mini', {zoomControl: false}).setView([lat, lng], 16); L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}').addTo(miniMapa); } else miniMapa.setView([lat, lng], 16);
+                if(mrkMini) miniMapa.removeLayer(mrkMini); mrkMini = L.marker([lat, lng]).addTo(miniMapa);
+            } else mostrarToast("Dirección no encontrada", "error");
+        }
+
+        async function procesarRegistro(e) {
+            e.preventDefault();
+            const p = { nombre: document.getElementById('reg-nombre').value, correo: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value, rol: rolRegistro };
+            if(rolRegistro === 'restaurante') {
+                p.nombre_comercial = document.getElementById('reg-comercial').value; p.direccion = document.getElementById('reg-direccion').value; p.lat = document.getElementById('reg-lat').value; p.lng = document.getElementById('reg-lng').value;
+                if(!p.lat) return mostrarToast("Busca en el mapa primero", "error");
+            }
+            const res = await fetch('http://localhost:3000/api/registro', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p) });
+            const data = await res.json();
+            if(data.error) mostrarToast(data.error, "error"); else { mostrarToast("Cuenta creada"); toggleModo('login'); }
+        }
+
+        async function procesarLogin(e) {
+            e.preventDefault();
+            const res = await fetch('http://localhost:3000/api/login', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({correo: document.getElementById('login-email').value, password: document.getElementById('login-password').value}) });
+            const data = await res.json();
+            if(data.error) mostrarToast(data.error, "error");
+            else { 
+                usuarioActivo = data.usuario; 
+                if(document.getElementById('remember-me').checked) localStorage.setItem('rappicero_user', JSON.stringify(usuarioActivo));
+                cargarInterfaz(); 
+            }
+        }
+        function cerrarSesion() { 
+            if(pollingInterval) clearInterval(pollingInterval);
+            if(mapPolling) clearInterval(mapPolling);
+            if(temporizadorInterval) clearInterval(temporizadorInterval);
+            if(notisPolling) clearInterval(notisPolling);
+            if(adminPolling) clearInterval(adminPolling);
+            localStorage.removeItem('rappicero_user'); window.location.reload(); 
+        }
+
+        // --- FLUJO DE ENRUTAMIENTO Y PERFIL ---
+        function abrirPerfil() {
+            toggleSidebar(); toggleModal('modal-perfil');
+            const btnApelarCont = document.getElementById('btn-apelar-container');
+            if(btnApelarCont) btnApelarCont.classList.toggle('hidden', !revocadoActivo);
+        }
+
+        function cargarInterfaz() {
+            document.getElementById('vista-login').style.transform = 'translateY(-100%)';
+            setTimeout(async () => {
+                document.getElementById('vista-login').classList.add('hidden');
+                document.getElementById('nav-global').classList.remove('hidden');
+                
+                const r = await fetch(`http://localhost:3000/api/usuario/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' });
+                const uData = await r.json();
+                usuarioActivo.estado_verificacion = uData.estado_verificacion;
+                usuarioActivo.is_premium = uData.is_premium;
+                
+                revocadoActivo = (uData.cooldown_premium && !uData.is_premium);
+
+                document.getElementById('sb-nombre').innerText = usuarioActivo.nombre;
+                document.getElementById('prof-nombre-v').innerText = usuarioActivo.nombre;
+                document.getElementById('prof-estrellas').innerHTML = `${uData.estrellas} <i class="fa-solid fa-star text-xs"></i>`;
+                document.getElementById('prof-puntos').innerText = uData.puntaje;
+
+                aplicarEstadoPremium(!!usuarioActivo.is_premium);
+                document.getElementById('btn-sidebar-opiniones').classList.toggle('hidden', usuarioActivo.rol === 'admin');
+
+                const btnApelarPrem = document.getElementById('btn-apelar-premium');
+                if(btnApelarPrem) btnApelarPrem.classList.toggle('hidden', !revocadoActivo);
+
+                cargarNotis();
+                if(notisPolling) clearInterval(notisPolling);
+                notisPolling = setInterval(() => { cargarNotis(); refrescarPerfil(); }, 5000); 
+
+                if (usuarioActivo.rol === 'cliente') {
+                    document.getElementById('nav-buscador').classList.remove('hidden');
+                    document.getElementById('vista-cliente').classList.remove('hidden');
+                    initMapaReal(); cargarFeed(); refrescarPerfil(); restaurarPedidoActivo(); 
+                    pollingInterval = setInterval(checkEstadoPedidoCliente, 2000);
+                    mapPolling = setInterval(cargarFeed, 10000); 
+                } else {
+                    document.getElementById('nav-admin-title').classList.remove('hidden');
+                    document.getElementById('area-trabajo').classList.remove('hidden');
+                    
+                    if (usuarioActivo.rol === 'restaurante') {
+                        document.getElementById('nav-admin-title').innerText = `Local: ${usuarioActivo.nombre}`;
+                        if(usuarioActivo.estado_verificacion !== 'aprobado') {
+                            document.getElementById('aviso-pendiente').classList.remove('hidden');
+                            if(usuarioActivo.estado_verificacion === 'baja') { document.querySelector('#aviso-pendiente h2').innerText = 'Cuenta dada de baja'; document.querySelector('#aviso-pendiente p').innerText = 'Tu local estuvo 2 meses sin actividad. Contacta al administrador para reactivarlo.'; }
+                            pollingInterval = setInterval(checkVerificacionRest, 5000);
+                        } else {
+                            document.getElementById('vista-restaurante').classList.remove('hidden');
+                            cargarEntregasRestaurante(); cargarMenuRestaurante();
+                            pollingInterval = setInterval(cargarEntregasRestaurante, 3000);
+                        }
+                    } else if (usuarioActivo.rol === 'admin') {
+                        document.getElementById('nav-admin-title').innerText = "Panel Administrador";
+                        document.getElementById('vista-admin').classList.remove('hidden');
+                        cargarAdmin(); cargarSolicitudesPrem(); cargarGestorPrem(); cargarApelaciones(); cargarKpis(); cargarApelacionesStrikes(); cargarUsuariosAdmin();
+                        
+                        if(adminPolling) clearInterval(adminPolling);
+                        adminPolling = setInterval(() => {
+                            cargarAdmin(); cargarSolicitudesPrem(); cargarGestorPrem(); cargarApelaciones(); cargarKpis(); cargarApelacionesStrikes();
+                        }, 5000);
+                    }
+                }
+            }, 500);
+        }
+
+        // --- MAPA CLIENTE Y RADIOS FÍSICOS REFINADOS ---
+        function toggleMapa() {
+            mapaExpandido = !mapaExpandido;
+            document.getElementById('mapa-container').classList.toggle('h-48', !mapaExpandido);
+            document.getElementById('mapa-container').classList.toggle('h-[60vh]', mapaExpandido);
+            document.getElementById('icon-expand').className = mapaExpandido ? "fa-solid fa-compress" : "fa-solid fa-expand";
+            setTimeout(() => miMapa.invalidateSize(), 500);
+        }
+        function geolocalizar() {
+            if (navigator.geolocation) {
+                mostrarToast("Buscando...");
+                navigator.geolocation.getCurrentPosition(pos => { usuarioLat = pos.coords.latitude; usuarioLng = pos.coords.longitude; actualizarCentroMapa(); }, e => mostrarToast("Error GPS", "error"));
+            }
+        }
+        async function buscarUbicacion() {
+            const dir = document.getElementById('input-ubicacion').value;
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dir + ' Ciudad Victoria')}`);
+            const data = await res.json();
+            if(data.length > 0) { usuarioLat = data[0].lat; usuarioLng = data[0].lon; actualizarCentroMapa(); }
+        }
+        function actualizarCentroMapa() { if(miMapa) { miMapa.setView([usuarioLat, usuarioLng], 14); circuloRango.setLatLng([usuarioLat, usuarioLng]); cargarFeed(); } }
+
+        function cambiarTransporte(tipo) {
+            transporteActivo = tipo;
+            ['pie', 'bici', 'bus', 'moto', 'auto'].forEach(t => {
+                const btn = document.getElementById(`btn-t-${t}`);
+                if(t === tipo) { btn.classList.replace('opacity-50', 'opacity-100'); btn.classList.add('bg-[var(--panel-bg)]', 'shadow'); } 
+                else { btn.classList.replace('opacity-100', 'opacity-50'); btn.classList.remove('bg-[var(--panel-bg)]', 'shadow'); }
+            });
+            if (circuloRango) {
+                let r = 1500;
+                if(tipo === 'bici') r = 4000;
+                if(tipo === 'bus') r = 7000;
+                if(tipo === 'moto') r = 10000;
+                if(tipo === 'auto') r = 15000;
+                circuloRango.setRadius(r);
+                miMapa.panTo([usuarioLat, usuarioLng]);
+            }
+            cargarFeed();
+        }
+
+        function initMapaReal() {
+            miMapa = L.map('mapa', {zoomControl: false}).setView([usuarioLat, usuarioLng], 14);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}').addTo(miMapa);
+            circuloRango = L.circle([usuarioLat, usuarioLng], { radius: 1500, color: '#00e676', fillColor: '#00e676', fillOpacity: 0.1 }).addTo(miMapa);
+            L.marker([usuarioLat, usuarioLng], {icon: L.divIcon({className:'text-2xl text-blue-500 drop-shadow-md', html: '<i class="fa-solid fa-location-dot"></i>'})}).addTo(miMapa);
+            aplicarTemaGuardado(); 
+        }
+
+        // --- FEED & PEDIDOS ---
+        function buscarPlatillos(e) { busquedaActual = e.target.value; cargarFeed(); }
+        function filtrarCategoria(cat) { categoriaFiltro = cat; cargarFeed(); }
+        
+        async function cargarFeed() {
+            const res = await fetch(`http://localhost:3000/api/feed?t=${Date.now()}`, { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({latUsuario: usuarioLat, lngUsuario: usuarioLng, transporte: transporteActivo, busqueda: busquedaActual, categoria: categoriaFiltro}) });
+            const data = await res.json();
+            
+            marcadores.forEach(m => miMapa.removeLayer(m)); marcadores = [];
+            data.restaurantes.forEach(r => {
+                const icon = L.divIcon({className: 'bg-[var(--panel-bg)] rounded-full flex items-center justify-center shadow-lg text-[#00e676] font-black border-2 border-[#00e676]', html: '<i class="fa-solid fa-store"></i>', iconSize: [36, 36]});
+                const m = L.marker([r.lat, r.lng], {icon}).addTo(miMapa);
+                marcadores.push(m); m.bindPopup(`<div class="text-center font-bold">${r.nombre}</div>`);
+            });
+
+            const ui = document.getElementById('ui-platillos');
+            if(data.platillos.length === 0) { ui.innerHTML = `<div class="col-span-2 md:col-span-4 text-center py-10 opacity-50 font-bold">No hay drops activos cerca. Prueba con otro medio de transporte para ampliar tu radio.</div>`; return; }
+            
+            ui.innerHTML = data.platillos.map(p => `
+                <div class="glass-panel overflow-hidden cursor-pointer hover:border-[#00e676] transition flex flex-col" onclick="abrirDetalle(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', '${p.descripcion.replace(/'/g, "\\'")}', '${p.imagen_url}', ${p.disponibles}, '${p.rest_nombre.replace(/'/g, "\\'")}', ${p.id_restaurante})">
+                    <img src="${p.imagen_url}" class="w-full h-32 object-cover">
+                    <div class="p-4 flex-grow flex flex-col justify-between">
+                        <div><h3 class="font-extrabold leading-tight text-sm">${p.nombre}</h3><p class="text-[10px] opacity-70 font-bold my-1"><i class="fa-solid fa-store"></i> ${p.rest_nombre}</p></div>
+                        <div class="flex justify-between items-center mt-2 border-t border-[var(--border-color)] pt-2"><span class="text-[#00e676] font-black text-xs uppercase">Atrapar</span><div class="bg-[var(--input-bg)] w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]">${p.disponibles}</div></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function abrirDetalle(id, nombre, desc, img, disp, rest, idRest) {
+            document.getElementById('modal-platillo').classList.remove('hidden');
+            document.getElementById('det-img').src = img; document.getElementById('det-nombre').innerText = nombre;
+            document.getElementById('det-desc').innerText = desc; document.getElementById('det-rest').innerHTML = `<i class="fa-solid fa-store mr-1"></i> ${rest}`;
+            document.getElementById('det-disp').innerText = `${disp} Quedan`;
+            cantidadSel = 1; maxCantidad = Math.max(1, Math.min(disp, 3)); document.getElementById('det-cant').innerText = 1;
+            document.getElementById('btn-confirmar-pedido').onclick = () => pedirPlatillo(id, idRest, rest);
+        }
+
+        async function pedirPlatillo(idPlatillo, idRestaurante, restNombre) {
+            const res = await fetch('http://localhost:3000/api/pedidos', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_cliente: usuarioActivo.id, id_restaurante: idRestaurante, id_platillo: idPlatillo, cantidad: cantidadSel})});
+            const data = await res.json();
+            cerrarDetalle();
+            if(data.error) return mostrarToast(data.error, "error");
+
+            pedidoActualId = data.id_pedido; restauranteAcalificar = idRestaurante;
+            document.getElementById('trk-restaurante').innerText = restNombre; document.getElementById('trk-codigo').innerText = data.codigo;
+            document.getElementById('widget-tracker').classList.remove('hidden');
+            avanzarTracker(1); mostrarToast("¡Drop atrapado!"); iniciarTracker(data.segundos); cargarFeed();
+        }
+
+        function avanzarTracker(paso) {
+            for(let i=1; i<=4; i++) { 
+                document.getElementById(`step-${i}`).classList.toggle('active', i <= paso); 
+                if(i < 4) document.getElementById(`line-${i}`).classList.toggle('active', i < paso); 
+            }
+            const btn = document.getElementById('btn-trk-accion'), lbl = document.getElementById('lbl-estado-entrega');
+            
+            if(paso === 1) { 
+                btn.classList.remove('hidden'); 
+                lbl.classList.add('hidden'); 
+                btn.innerHTML = `<i class="fa-solid fa-location-arrow"></i> Llegué al Local`; 
+            } 
+            else if (paso === 2) { 
+                btn.classList.add('hidden'); 
+                lbl.classList.remove('hidden'); 
+                lbl.innerText = "Drop asegurado. Notificando al local...";
+                lbl.classList.remove('text-[#00e676]');
+                lbl.classList.add('text-orange-500');
+            } 
+            else if (paso === 3) {
+                lbl.innerText = "Local preparando entrega...";
+            }
+            else if (paso === 4) { 
+                if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                lbl.innerText = "¡Drop recogido!";
+                lbl.classList.replace('text-orange-500', 'text-[#00e676]');
+                
+                setTimeout(() => {
+                    document.getElementById('widget-tracker').classList.add('hidden'); 
+                    abrirModalResena({ id_pedido: pedidoParaResenar, titulo: '¡Drop rescatado!', sub: 'Califica a ' + document.getElementById('trk-restaurante').innerText }); 
+                }, 2000); 
+            }
+        }
+
+        function iniciarTracker(segsIni = 30 * 60) {
+            let segs = segsIni; document.getElementById('trk-timer').innerText = `${Math.floor(segs/60).toString().padStart(2,'0')}:${(segs%60).toString().padStart(2,'0')}`;
+            if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+            temporizadorInterval = setInterval(() => {
+                segs--; if(segs === 300) mostrarToast("Tu pedido expira en 5 minutos", "error");
+                if(segs <= 0) { 
+                    if(temporizadorInterval) clearInterval(temporizadorInterval); 
+                    document.getElementById('widget-tracker').classList.add('hidden'); 
+                    mostrarToast("Tu pedido expiró", "error"); pedidoActualId = null; setTimeout(refrescarPerfil, 2500); 
+                    cargarFeed(); 
+                }
+                else document.getElementById('trk-timer').innerText = `${Math.floor(segs/60).toString().padStart(2,'0')}:${(segs%60).toString().padStart(2,'0')}`;
+            }, 1000);
+        }
+
+        async function solicitarEntrega() { await fetch('http://localhost:3000/api/pedidos/solicitar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido: pedidoActualId})}); avanzarTracker(2); }
+
+        async function checkEstadoPedidoCliente() {
+            if(!pedidoActualId) return;
+            try {
+                const res = await fetch(`http://localhost:3000/api/pedidos/estado/${pedidoActualId}?t=${Date.now()}`, { cache: 'no-store' });
+                if (!res.ok) return;
+                const data = await res.json();
+                
+                if (data.estado === 'entregado' || data.solicitud_entrega === 'aceptada') {
+                    pedidoParaResenar = pedidoActualId; pedidoActualId = null; avanzarTracker(4); 
+                    mostrarToast("¡Drop recogido! +10 Pts", "success");
+                    
+                    const r = await fetch(`http://localhost:3000/api/usuario/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' });
+                    const uData = await r.json();
+                    document.getElementById('prof-puntos').innerText = uData.puntaje;
+                    document.getElementById('prof-estrellas').innerHTML = `${uData.estrellas} <i class="fa-solid fa-star text-xs"></i>`;
+                    
+                } else if (data.estado === 'expirado') {
+                    pedidoActualId = null;
+                    if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                    document.getElementById('widget-tracker').classList.add('hidden');
+                    mostrarToast("Tu pedido expiró (+1 strike)", "error"); cargarFeed(); refrescarPerfil();
+                } else if (data.solicitud_entrega === 'rechazada' || data.estado === 'cancelado') {
+                    pedidoActualId = null;
+                    document.getElementById('lbl-estado-entrega').innerText = "El restaurante canceló la entrega.";
+                    document.getElementById('lbl-estado-entrega').classList.replace('text-orange-500', 'text-red-500');
+                    if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                    setTimeout(() => { 
+                        document.getElementById('widget-tracker').classList.add('hidden'); 
+                        cargarFeed(); 
+                    }, 4000);
+                }
+            } catch (e) {
+                console.error("Error validando el pedido");
+            }
+        }
+
+        async function refrescarPerfil() {
+            try {
+                const r = await fetch(`${API}/api/usuario/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' }); const u = await r.json();
+                if(u.puntaje === undefined) { if(Object.keys(u).length === 0) cerrarSesion(); return; } // cuenta eliminada
+                document.getElementById('prof-puntos').innerText = u.puntaje;
+                document.getElementById('prof-estrellas').innerHTML = `${u.estrellas} <i class="fa-solid fa-star text-xs"></i>`;
+                usuarioActivo.strikes = u.strikes || 0;
+                if(usuarioActivo.rol === 'cliente') {
+                    document.getElementById('prof-strikes').innerText = `Strikes: ${usuarioActivo.strikes}/3`;
+                    document.getElementById('banner-bloqueo').classList.toggle('hidden', usuarioActivo.strikes < 3);
+                }
+                revocadoActivo = !!(u.cooldown_premium && !u.is_premium);
+                const bp = document.getElementById('btn-apelar-premium'); if(bp) bp.classList.toggle('hidden', !revocadoActivo);
+                aplicarEstadoPremium(!!u.is_premium);
+            } catch(e) {}
+        }
+        // Recupera el pedido activo si el cliente recarga la página o vuelve a abrir la app
+        async function restaurarPedidoActivo() {
+            try {
+                const r = await fetch(`http://localhost:3000/api/pedidos/activo/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' }); const p = await r.json();
+                if(!p || !p.id) return;
+                pedidoActualId = p.id; restauranteAcalificar = p.id_restaurante;
+                document.getElementById('trk-restaurante').innerText = p.restaurante; document.getElementById('trk-codigo').innerText = p.codigo_unico;
+                document.getElementById('widget-tracker').classList.remove('hidden');
+                avanzarTracker(p.solicitud_entrega === 'pendiente' ? 2 : 1); iniciarTracker(p.segundos_restantes);
+            } catch(e) {}
+        }
+
+        // --- SISTEMA PREMIUM ---
+        function abrirPremiumModal() { toggleSidebar(); toggleModal('modal-premium-main'); }
+        async function enviarSolicitudPremium() {
+            const nombre = document.getElementById('sol-nombre').value; if(!nombre) return;
+            const res = await fetch('http://localhost:3000/api/premium/solicitar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: usuarioActivo.id, nombre_solicitante: nombre})});
+            const data = await res.json();
+            if(data.error) mostrarToast(data.error, "error"); else { mostrarToast("Solicitud enviada al admin."); toggleModal('modal-solicitar-key'); }
+        }
+        async function activarPremium() {
+            const key = document.getElementById('input-key').value; if(!key) return;
+            const res = await fetch('http://localhost:3000/api/premium/activar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: usuarioActivo.id, key_code: key})});
+            const data = await res.json();
+            if(data.error) mostrarToast(data.error, "error"); else { mostrarToast("¡Premium Activado!"); setTimeout(()=>window.location.reload(), 1500); }
+        }
+        function abrirApelacion() { document.getElementById('modal-perfil').classList.add('hidden'); document.getElementById('modal-premium-main').classList.add('hidden'); toggleModal('modal-apelar'); }
+        async function enviarApelacion() {
+            const txt = document.getElementById('texto-apelacion').value; if(!txt) return;
+            await fetch('http://localhost:3000/api/premium/apelar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: usuarioActivo.id, motivo: 'Revocación General', texto: txt})});
+            mostrarToast("Apelación enviada."); toggleModal('modal-apelar');
+        }
+
+        // --- RESEÑAS Y NOTIFICACIONES ---
+        window.setRating = (num) => {
+            ratingTemp = num; const stars = document.getElementById('estrellas-rating').children;
+            for(let i=0; i<5; i++) stars[i].className = i < num ? 'fa-solid fa-star cursor-pointer text-yellow-400 opacity-100 transition' : 'fa-solid fa-star cursor-pointer opacity-30 transition';
+        }
+        window.enviarResena = async () => {
+            if(!resenaCtx) return;
+            const r = await fetch(`${API}/api/resena`, { method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido: resenaCtx.id_pedido, calificacion: ratingTemp, comentario: document.getElementById('resena-texto').value})});
+            const d = await r.json().catch(() => ({})); if(!r.ok) return mostrarToast(d.error || "No se pudo enviar la reseña", "error");
+            document.getElementById('modal-resena').classList.add('hidden'); mostrarToast("¡Reseña enviada! Gracias."); resenaCtx = null; pedidoActualId = null;
+            if(!document.getElementById('modal-opiniones').classList.contains('hidden')) cargarOpiniones();
+        }
+
+        async function cargarNotis() {
+            const res = await fetch(`http://localhost:3000/api/notificaciones/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' });
+            const data = await res.json();
+            const badge = document.getElementById('badge-notis');
+            const noLeidas = data.filter(n => !n.leida).length;
+            if(noLeidas > 0) { badge.classList.remove('hidden'); badge.innerText = noLeidas; } else badge.classList.add('hidden');
+            document.getElementById('lista-notis').innerHTML = data.length === 0 ? '<p class="text-sm opacity-50 text-center mt-4">Bandeja vacía</p>' : data.map(n => `<div class="glass-input p-4 border ${!n.leida ? 'border-[#00e676]' : 'border-transparent'}"><div class="flex items-center gap-3 mb-1"><div class="w-8 h-8 rounded-full bg-[#00e676]/20 text-[#00e676] flex items-center justify-center shadow"><i class="fa-solid ${n.icono}"></i></div><h4 class="font-bold text-sm">${n.titulo}</h4></div><p class="text-xs opacity-70 ml-11">${n.mensaje}</p></div>`).join('');
+        }
+        async function marcarNotisLeidas() { await fetch(`http://localhost:3000/api/notificaciones/leer/${usuarioActivo.id}`, {method: 'POST'}); document.getElementById('badge-notis').classList.add('hidden'); }
+
+        // --- DASHBOARDS ADMIN Y RESTAURANTE ---
+        function tabAdmin(tabId) {
+            document.querySelectorAll('.admin-tab').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            ['btn-tab-aprobar', 'btn-tab-sol-prem', 'btn-tab-gest-prem', 'btn-tab-apelar', 'btn-tab-strikes', 'btn-tab-usuarios'].forEach(id => document.getElementById(id).classList.add('opacity-50'));
+            event.target.classList.remove('opacity-50');
+        }
+
+        async function cargarAdmin() {
+            const res = await fetch(`http://localhost:3000/api/admin/pendientes?t=${Date.now()}`, { cache: 'no-store' }); const data = await res.json();
+            document.getElementById('tabla-admin').innerHTML = data.length === 0 ? `<tr><td colspan="3" class="px-4 py-8 text-center opacity-50 font-bold">Sin locales pendientes.</td></tr>` : data.map(r => `<tr class="border-b border-[var(--border-color)] hover:bg-[var(--input-bg)] transition"><td class="px-4 py-4 font-bold">${r.nombre_comercial} <br><span class="text-xs opacity-70">${r.correo}</span></td><td class="px-4 py-4 font-medium opacity-70">${r.direccion}</td><td class="px-4 py-4"><button onclick="verificarRest(${r.id_usuario}, 'aprobado')" class="bg-[#00e676]/20 text-[#00e676] font-bold px-4 py-2 rounded-full border border-[#00e676]/50 transition">Aprobar</button></td></tr>`).join('');
+        }
+        async function verificarRest(id, accion) { await fetch('http://localhost:3000/api/admin/verificar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: id, accion})}); mostrarToast(`Aprobado`); cargarAdmin(); }
+        
+        async function cargarSolicitudesPrem() {
+            const res = await fetch(`http://localhost:3000/api/admin/premium/solicitudes?t=${Date.now()}`, { cache: 'no-store' }); const data = await res.json();
+            document.getElementById('lista-sol-prem').innerHTML = data.length === 0 ? '<p class="opacity-50 text-sm">No hay solicitudes nuevas.</p>' : data.map(s => `<div class="glass-input p-3 flex justify-between items-center"><div><div class="font-bold text-amber-500">${s.nombre_solicitante}</div><div class="text-xs opacity-70">${s.correo}</div></div><div class="flex gap-2"><button onclick="resolverSolicitudPrem(${s.id}, ${s.id_usuario}, 'aprobado')" class="btn-premium px-3 py-1 text-xs shadow-lg">Aprobar KEY</button><button onclick="resolverSolicitudPrem(${s.id}, ${s.id_usuario}, 'rechazado')" class="bg-red-500 text-white font-bold px-3 py-1 text-xs rounded-full shadow-lg">Rechazar</button></div></div>`).join('');
+        }
+        async function resolverSolicitudPrem(id_sol, id_usu, acc) { await fetch('http://localhost:3000/api/admin/premium/aprobar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_solicitud: id_sol, id_usuario: id_usu, accion: acc})}); cargarSolicitudesPrem(); mostrarToast(acc === 'aprobado' ? "KEY Enviada" : "Solicitud Rechazada", acc === 'aprobado' ? 'success' : 'error'); }
+
+        async function cargarGestorPrem() {
+            const res = await fetch(`http://localhost:3000/api/admin/premium/usuarios?t=${Date.now()}`, { cache: 'no-store' }); const data = await res.json();
+            document.getElementById('lista-gest-prem').innerHTML = data.length === 0 ? '<p class="opacity-50 text-sm">No hay usuarios premium.</p>' : data.map(u => `<div class="glass-input p-4 flex justify-between items-center"><div><div class="font-bold text-purple-400">${u.nombre} <span class="text-xs text-amber-500 ml-2">${u.estrellas} ★</span></div><div class="text-xs opacity-70">${u.correo}</div></div><div class="flex gap-2"><select id="motivo-${u.id}" class="text-xs text-black p-1 rounded"><option>Mala calificación</option><option>Malas opiniones</option><option>Ausencia</option></select><button onclick="revocarPremium(${u.id})" class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow">Revocar</button></div></div>`).join('');
+        }
+        async function revocarPremium(id_usu) { const m = document.getElementById(`motivo-${id_usu}`).value; await fetch('http://localhost:3000/api/admin/premium/revocar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: id_usu, motivo: m})}); mostrarToast("Revocado"); cargarGestorPrem(); }
+
+        async function cargarApelaciones() {
+            const res = await fetch(`http://localhost:3000/api/admin/premium/apelaciones?t=${Date.now()}`, { cache: 'no-store' }); const data = await res.json();
+            document.getElementById('lista-apelaciones').innerHTML = data.length === 0 ? '<p class="opacity-50 text-sm">Sin apelaciones pendientes.</p>' : data.map(a => `<div class="glass-input p-4"><div class="font-bold text-red-400">${a.nombre}</div><p class="text-xs italic opacity-80 my-2">"${a.texto_apelacion}"</p><div class="flex gap-2 mt-2"><button onclick="resolverApelacion(${a.id}, ${a.id_usuario}, 'aprobada')" class="bg-[#00e676] text-[#004e36] px-3 py-1 rounded-full text-xs font-bold shadow">Aprobar</button><button onclick="resolverApelacion(${a.id}, ${a.id_usuario}, 'rechazada')" class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow">Rechazar (48h)</button></div></div>`).join('');
+        }
+        async function resolverApelacion(id_ap, id_usu, acc) { await fetch('http://localhost:3000/api/admin/premium/apelacion/resolver', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_apelacion: id_ap, id_usuario: id_usu, accion: acc})}); cargarApelaciones(); }
+
+        // RESTAURANTE
+        async function checkVerificacionRest() { const r = await fetch(`http://localhost:3000/api/usuario/${usuarioActivo.id}?t=${Date.now()}`, { cache: 'no-store' }); const data = await r.json(); if(data.estado_verificacion === 'aprobado') window.location.reload(); }
+
+        async function cargarMenuRestaurante() {
+            const res = await fetch(`http://localhost:3000/api/restaurante/menu/${usuarioActivo.id_restaurante}?t=${Date.now()}`, { cache: 'no-store' });
+            const data = await res.json();
+            document.getElementById('lista-menu-rest').innerHTML = data.map(p => `<div class="glass-input p-4 flex justify-between items-center"><div><div class="font-bold text-sm">${p.nombre}</div><div class="text-xs opacity-70">Stock: ${p.disponibles}</div></div><div class="flex items-center gap-1"><button onclick="ajustarStock(${p.id}, ${p.disponibles} - 1)" class="bg-gray-500/20 w-7 h-7 rounded-full font-bold">−</button><input type="number" min="0" value="${p.disponibles}" onchange="ajustarStock(${p.id}, this.value)" class="w-14 glass-input text-center text-sm font-bold py-1"><button onclick="ajustarStock(${p.id}, ${p.disponibles} + 1)" class="btn-sg w-7 h-7 text-sm">+</button></div></div>`).join('');
+        }
+        window.crearPlatilloManual = async function() {
+            const p = { id_restaurante: usuarioActivo.id_restaurante, nombre: document.getElementById('cp-nombre').value, descripcion: document.getElementById('cp-desc').value, categoria: document.getElementById('cp-cat').value, disponibles: document.getElementById('cp-disp').value };
+            await fetch('http://localhost:3000/api/restaurante/menu/crear', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)}); toggleModal('modal-crear-platillo'); cargarMenuRestaurante(); mostrarToast("Añadido.");
+        }
+        window.publicarPlatillo = async function(id) { await fetch('http://localhost:3000/api/publicar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_platillo: id, cantidad: 1})}); cargarMenuRestaurante(); mostrarToast("Platillo publicado."); }
+
+        async function cargarEntregasRestaurante() {
+            cargarStatsRest();
+            const res = await fetch(`http://localhost:3000/api/pedidos/restaurante/${usuarioActivo.id_restaurante}?t=${Date.now()}`, { cache: 'no-store' });
+            const data = await res.json();
+            window._entregas = data; const divVip = document.getElementById('lista-entregas-vip'), divNorm = document.getElementById('lista-entregas-normal');
+            
+            const vips = data.filter(p => p.is_premium), norms = data.filter(p => !p.is_premium);
+            
+            divVip.innerHTML = vips.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : vips.map(p => `<div class="bg-amber-500/10 border border-amber-500/50 p-3 rounded-xl flex justify-between items-center mb-2"><div><div class="font-extrabold text-amber-500"><i class="fa-solid fa-crown mr-1"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div><div class="text-xs mt-1">Cód: <span class="bg-amber-500 text-black px-1 rounded font-mono">${p.codigo_unico}</span></div><div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div></div><div class="flex gap-2"><button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow hover:scale-105 transition">Entregar</button></div></div>`).join('');
+            
+            divNorm.innerHTML = norms.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : norms.map(p => `<div class="glass-input p-3 flex justify-between items-center mb-2"><div><div class="font-bold"><i class="fa-solid fa-user-circle mr-1 opacity-50"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div><div class="text-xs mt-1">Cód: <span class="bg-[#00e676]/20 text-[#00e676] px-1 rounded font-mono border border-[#00e676]">${p.codigo_unico}</span></div><div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div></div><div class="flex flex-col gap-1"><button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-[#00e676] text-[#004e36] px-3 py-1 rounded-full text-[10px] font-bold shadow hover:scale-105 transition">Entregar</button><button onclick="responderEntrega(${p.id}, 'rechazada', ${p.id_cliente})" class="bg-red-500/20 text-red-500 px-3 py-1 rounded-full text-[10px] font-bold border border-red-500/50 hover:bg-red-500 hover:text-white transition">Cancelar</button></div></div>`).join('');
+        }
+        window.responderEntrega = async function(id_pedido, accion, id_cliente) {
+            const ped = (window._entregas || []).find(x => x.id === id_pedido);
+            const rr = await fetch(`${API}/api/pedidos/responder`, {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido, accion})});
+            const dd = await rr.json().catch(()=>({}));
+            if(!rr.ok) mostrarToast(dd.error || 'No se pudo actualizar el pedido', 'error');
+            else { mostrarToast(accion==='aceptada' ? 'Entrega registrada' : 'Pedido cancelado'); if(accion === 'aceptada') abrirModalResena({ id_pedido, titulo: 'Entrega completada', sub: 'Califica a ' + (ped ? ped.nombre : 'tu cliente') + ' (opcional).' }); }
+            cargarEntregasRestaurante();
+        }
+
+        // --- PREMIUM: aplica o quita beneficios según el estado REAL en la BD ---
+        function aplicarEstadoPremium(prem) {
+            const cambio = premPrevio !== null && premPrevio !== prem; premPrevio = prem; usuarioActivo.is_premium = prem;
+            if(localStorage.getItem('rappicero_user')) localStorage.setItem('rappicero_user', JSON.stringify(usuarioActivo));
+            const $ = id => document.getElementById(id);
+            $('lbl-tema-prem').classList.toggle('hidden', !prem); $('sb-star').classList.toggle('hidden', !prem); $('prof-star').classList.toggle('hidden', !prem);
+            document.querySelectorAll('.tema-prem').forEach(b => { b.classList.toggle('opacity-30', !prem); b.classList.toggle('cursor-not-allowed', !prem); const l = b.querySelector('.lock-ico'); if(l) l.classList.toggle('hidden', prem); });
+            const bp = $('btn-sidebar-premium');
+            if(prem) { bp.innerHTML = '<i class="fa-solid fa-crown w-6"></i> Eres Premium'; bp.onclick = null; bp.classList.add('cursor-default'); }
+            else { bp.innerHTML = '<i class="fa-solid fa-crown w-6"></i> Ser Premium'; bp.onclick = abrirPremiumModal; bp.classList.remove('cursor-default'); }
+            if(!prem && TEMAS_PREMIUM.includes(localStorage.getItem('theme'))) setTheme('dark'); // sin Premium no hay temas exclusivos
+            if(cambio) mostrarToast(prem ? "¡Premium activado!" : "Tu Premium terminó: se restablecieron tus beneficios", prem ? 'success' : 'error');
+        }
+
+        // --- CLIENTE: apelar bloqueo y cantidad ---
+        function cambiarCantidad(d) { cantidadSel = Math.min(maxCantidad, Math.max(1, cantidadSel + d)); document.getElementById('det-cant').innerText = cantidadSel; }
+        async function enviarApelacionStrikes() {
+            const t = document.getElementById('texto-apel-strikes').value.trim(); if(!t) return mostrarToast("Escribe tu apelación", "error");
+            const d = await (await fetch(`${API}/api/strikes/apelar`, {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_usuario: usuarioActivo.id, texto: t})})).json();
+            if(d.error) return mostrarToast(d.error, "error");
+            document.getElementById('texto-apel-strikes').value = ''; toggleModal('modal-apelar-strikes'); mostrarToast("Apelación enviada al administrador");
+        }
+
+        // --- RESTAURANTE: stats y stock ---
+        async function cargarStatsRest() {
+            try {
+                const s = await (await fetch(`${API}/api/stats/restaurante/${usuarioActivo.id_restaurante}?t=${Date.now()}`, { cache: 'no-store' })).json();
+                document.getElementById('kpis-rest').innerHTML = [['Drops activos', s.disponibles, 'text-[#00e676]'], ['Entregados', s.entregados, 'text-blue-400'], ['Por recoger', s.pendientes, 'text-orange-400']].map(([l, v, c]) => `<div class="glass-panel p-4 text-center"><div class="text-[10px] uppercase font-bold opacity-50">${l}</div><div class="text-3xl font-black ${c}">${v}</div></div>`).join('');
+            } catch(e) {}
+        }
+        window.ajustarStock = async function(id, n) {
+            n = Math.max(0, parseInt(n) || 0);
+            await fetch(`${API}/api/restaurante/stock`, {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_platillo: id, disponibles: n})});
+            cargarMenuRestaurante(); cargarStatsRest(); mostrarToast("Stock actualizado");
+        }
+
+        // --- ADMIN: KPIs, apelaciones de bloqueo y CRUD ---
+        async function cargarKpis() {
+            const s = await (await fetch(`${API}/api/admin/stats?t=${Date.now()}`, { cache: 'no-store' })).json();
+            const k = [['fa-users','Clientes',s.clientes],['fa-store','Restaurantes',s.restaurantes],['fa-bowl-food','Drops activos',s.disponibles],['fa-circle-check','Entregados',s.entregados],['fa-clock','Expirados',s.expirados],['fa-triangle-exclamation','Strikes totales',s.strikes],['fa-ban','Bloqueados',s.bloqueados],['fa-crown','Premium',s.premium]];
+            document.getElementById('kpis-admin').innerHTML = k.map(([i, l, v]) => `<div class="glass-panel p-4"><div class="text-[10px] uppercase font-bold opacity-50 mb-1"><i class="fa-solid ${i} mr-1 text-[#00e676]"></i>${l}</div><div class="text-3xl font-black">${v}</div></div>`).join('');
+        }
+        async function cargarApelacionesStrikes() {
+            const d = await (await fetch(`${API}/api/admin/strikes/apelaciones?t=${Date.now()}`, { cache: 'no-store' })).json();
+            document.getElementById('lista-apel-strikes').innerHTML = d.length === 0 ? '<p class="opacity-50 text-sm">Sin apelaciones de bloqueo pendientes.</p>' : d.map(a => `<div class="glass-input p-4"><div class="font-bold text-orange-400">${esc(a.nombre)} <span class="text-xs opacity-60">${esc(a.correo)} · ${a.strikes} strikes</span></div><p class="text-xs italic opacity-80 my-2">"${esc(a.texto_apelacion)}"</p><div class="flex gap-2"><button onclick="resolverApelacionStrikes(${a.id}, ${a.id_usuario}, 'aprobada')" class="bg-[#00e676] text-[#004e36] px-3 py-1 rounded-full text-xs font-bold shadow">Desbloquear</button><button onclick="resolverApelacionStrikes(${a.id}, ${a.id_usuario}, 'rechazada')" class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow">Mantener bloqueo</button></div></div>`).join('');
+        }
+        async function resolverApelacionStrikes(id, idUsu, accion) {
+            await fetch(`${API}/api/admin/strikes/resolver`, {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_apelacion: id, id_usuario: idUsu, accion})});
+            mostrarToast(accion === 'aprobada' ? "Usuario desbloqueado" : "Bloqueo mantenido", accion === 'aprobada' ? 'success' : 'error'); cargarApelacionesStrikes(); cargarKpis();
+        }
+        async function cargarUsuariosAdmin() {
+            usuariosCache = await (await fetch(`${API}/api/admin/usuarios?t=${Date.now()}`, { cache: 'no-store' })).json();
+            document.getElementById('lista-usuarios').innerHTML = usuariosCache.map(u => `<div class="glass-input p-3 flex justify-between items-center gap-2"><div class="min-w-0"><div class="font-bold text-sm truncate">${esc(u.nombre_comercial || u.nombre)} <span class="text-[10px] uppercase opacity-60 ml-1">${u.rol}</span></div><div class="text-xs opacity-60 truncate">${esc(u.correo)} · ${u.estado_verificacion}${u.rol === 'cliente' ? ` · strikes ${u.strikes || 0}` : ''}</div></div><div class="flex gap-2 shrink-0"><button onclick="abrirModalUsuario(${u.id})" class="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold">Editar</button>${u.rol !== 'admin' ? `<button onclick="eliminarUsuario(${u.id})" class="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">Eliminar</button>` : ''}</div></div>`).join('');
+        }
+        function abrirModalUsuario(id) {
+            const u = id ? usuariosCache.find(x => x.id === id) : null, $ = i => document.getElementById(i);
+            $('mu-titulo').innerText = u ? 'Editar usuario' : 'Nuevo usuario'; $('mu-id').value = u ? u.id : '';
+            $('mu-rol').value = u ? u.rol : 'cliente'; $('mu-rol').disabled = !!u;
+            $('mu-nombre').value = u ? u.nombre : ''; $('mu-correo').value = u ? u.correo : ''; $('mu-password').value = '';
+            $('mu-password').placeholder = u ? 'Nueva contraseña (opcional)' : 'Contraseña (mín. 6)';
+            $('mu-estado').value = u ? u.estado_verificacion : 'aprobado'; $('mu-strikes').value = u ? (u.strikes || 0) : 0;
+            $('mu-comercial').value = u ? (u.nombre_comercial || '') : ''; $('mu-direccion').value = u ? (u.direccion || '') : '';
+            $('mu-lat').value = u ? (u.latitud || '') : ''; $('mu-lng').value = u ? (u.longitud || '') : '';
+            $('mu-extra').classList.toggle('hidden', $('mu-rol').value !== 'restaurante');
+            document.getElementById('modal-usuario').classList.remove('hidden');
+        }
+        async function guardarUsuario() {
+            const $ = i => document.getElementById(i).value, id = $('mu-id');
+            const body = { nombre: $('mu-nombre'), correo: $('mu-correo'), password: $('mu-password'), rol: $('mu-rol'), estado: $('mu-estado'), strikes: $('mu-strikes'), nombre_comercial: $('mu-comercial'), direccion: $('mu-direccion'), lat: $('mu-lat'), lng: $('mu-lng') };
+            if(id && $('mu-rol') !== 'restaurante') { delete body.nombre_comercial; delete body.direccion; }
+            const r = await fetch(`${API}/api/admin/usuarios${id ? '/' + id : ''}`, {method: id ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+            const d = await r.json(); if(!r.ok) return mostrarToast(d.error || "Error", "error");
+            document.getElementById('modal-usuario').classList.add('hidden'); mostrarToast("Guardado"); cargarUsuariosAdmin(); cargarKpis();
+        }
+        async function eliminarUsuario(id) {
+            if(!confirm("¿Eliminar definitivamente este usuario y todos sus datos (pedidos, menú, reseñas)?")) return;
+            const r = await fetch(`${API}/api/admin/usuarios/${id}`, {method: 'DELETE'}); const d = await r.json();
+            if(!r.ok) return mostrarToast(d.error || "Error", "error"); mostrarToast("Usuario eliminado"); cargarUsuariosAdmin(); cargarKpis();
+        }
+
+        // --- RESEÑAS BIDIRECCIONALES Y OPINIONES ---
+        function abrirModalResena(ctx) {
+            resenaCtx = ctx; document.getElementById('rs-titulo').innerText = ctx.titulo; document.getElementById('rs-sub').innerText = ctx.sub || 'Califica tu experiencia.';
+            document.getElementById('resena-texto').value = ''; setRating(5); document.getElementById('modal-resena').classList.remove('hidden');
+        }
+        function estrellasHTML(n) { n = Math.max(0, Math.min(5, Math.round(n))); return `<span class="text-yellow-400" role="img" aria-label="${n} de 5 estrellas">${'★'.repeat(n)}<span class="opacity-25">${'★'.repeat(5 - n)}</span></span>`; }
+        function abrirOpiniones() {
+            if(!document.getElementById('sidebar').classList.contains('-translate-x-full')) toggleSidebar();
+            document.getElementById('modal-opiniones').classList.remove('hidden'); cargarOpiniones();
+        }
+        async function cargarOpiniones() {
+            const [rec, pend] = await Promise.all([fetch(`${API}/api/resenas/recibidas?t=${Date.now()}`, {cache: 'no-store'}).then(r => r.json()), fetch(`${API}/api/resenas/pendientes?t=${Date.now()}`, {cache: 'no-store'}).then(r => r.json())]);
+            document.getElementById('op-resumen').innerHTML = `<div class="text-5xl font-black">${Number(rec.promedio).toFixed(1)}</div><div><div class="text-xl">${estrellasHTML(rec.promedio)}</div><div class="text-xs opacity-60 font-bold">${rec.total} ${rec.total === 1 ? 'opinión' : 'opiniones'}</div></div>`;
+            document.getElementById('op-lista').innerHTML = rec.resenas.length === 0 ? '<p class="text-sm opacity-50 italic">Aún no tienes opiniones.</p>' : rec.resenas.map(o => `<div class="glass-input p-3"><div class="flex justify-between items-center gap-2"><span class="font-bold text-sm truncate">${esc(o.autor)}</span>${estrellasHTML(o.calificacion)}</div>${o.comentario ? `<p class="text-sm opacity-80 mt-1">${esc(o.comentario)}</p>` : ''}<div class="text-[10px] opacity-50 mt-1">${new Date(o.fecha).toLocaleDateString('es-MX')}</div></div>`).join('');
+            document.getElementById('op-pendientes').classList.toggle('hidden', pend.length === 0);
+            document.getElementById('op-pend-lista').innerHTML = pend.map(p => `<div class="glass-input p-3 flex justify-between items-center gap-2"><div class="min-w-0 text-sm"><div class="font-bold truncate">${esc(p.con)}</div><div class="text-xs opacity-60 truncate">${esc(p.platillo || 'Pedido')} ×${p.cantidad}</div></div><button onclick="abrirModalResena({id_pedido: ${p.id_pedido}, titulo: 'Tu opinión', sub: 'Califica a ${esc(p.con).replace(/'/g, '&#39;')}'})" class="btn-sg px-3 py-1 text-xs font-bold shrink-0">Calificar</button></div>`).join('');
+        }
+
+        // --- MARCA: logo drop. ---
+        const DROP_SVG = px => `<svg class="drop-logo" width="${px}" height="${px}" viewBox="0 0 64 64" role="img" aria-label="drop."><path d="M32 3C32 3 11 27 11 41a21 21 0 0 0 42 0C53 27 32 3 32 3Z" fill="rgba(40,200,140,.14)" stroke="rgba(10,60,40,.22)" stroke-width="1.4"/><path d="M32 3C32 3 11 27 11 41a21 21 0 0 0 42 0C53 27 32 3 32 3Z" fill="url(#dpGlass)" stroke="url(#dpRim)" stroke-width="1.6"/><path d="M19.5 39C19.5 30 26 21 30.5 14.5" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="2.4" stroke-linecap="round"/><circle class="drop-core" cx="32" cy="42" r="8.5" fill="url(#dpCore)"/><circle cx="29.3" cy="39.2" r="2.2" fill="#fff" fill-opacity=".9"/></svg>`;
+        document.querySelectorAll('[data-drop-logo]').forEach(e => { e.innerHTML = DROP_SVG(e.dataset.dropLogo); });
+
+        // --- ACCESIBILIDAD ---
+        (function() {
+            const etiquetas = { 'fa-xmark': 'Cerrar', 'fa-bars': 'Abrir menú', 'fa-bell': 'Notificaciones', 'fa-gear': 'Ajustes', 'fa-right-from-bracket': 'Cerrar sesión' };
+            const aplicar = () => {
+                document.querySelectorAll('button').forEach(b => { if(b.textContent.trim() || b.getAttribute('aria-label')) return; for(const k in etiquetas) if(b.querySelector('.' + k)) { b.setAttribute('aria-label', etiquetas[k]); break; } });
+                document.querySelectorAll('[id^="modal-"]').forEach(m => { m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); });
+                const t = document.getElementById('toast-container'); if(t) { t.setAttribute('aria-live', 'polite'); t.setAttribute('role', 'status'); }
+            };
+            if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', aplicar); else aplicar();
+            document.addEventListener('keydown', e => {
+                if(e.key !== 'Escape') return;
+                const abiertos = [...document.querySelectorAll('[id^="modal-"]:not(.hidden)')];
+                if(abiertos.length) abiertos[abiertos.length - 1].classList.add('hidden');
+                else if(!document.getElementById('sidebar').classList.contains('-translate-x-full')) toggleSidebar();
+            });
+        })();
+    </script>
+</body>
+</html>
