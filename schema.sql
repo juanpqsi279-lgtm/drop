@@ -1,4 +1,4 @@
--- Esquema de la plataforma de rescate de comida (MySQL 8)
+rescate_comida-- Esquema de la plataforma de rescate de comida (MySQL 8)
 -- Uso: mysql -u root < schema.sql   (crea la BD y las tablas; no inserta datos)
 -- Después crea un admin (rol 'admin') con bcrypt o desde tu seeder.
 

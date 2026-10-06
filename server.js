@@ -81,7 +81,7 @@ async function autoRepararDB() {
         "CREATE TABLE IF NOT EXISTS apelaciones_strikes (id INT AUTO_INCREMENT PRIMARY KEY, id_usuario INT NOT NULL, texto_apelacion TEXT, estado ENUM('pendiente', 'aprobada', 'rechazada') DEFAULT 'pendiente', fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
     ];
     for (let tabla of tablasNuevas) {
-        try { await pool.query(tabla); } catch (e) {}
+        try { await pool.query(tabla); } catch (e) { }
     }
     console.log("🛠️ Base de datos verificada y auto-reparada.");
 }
@@ -89,8 +89,8 @@ autoRepararDB();
 
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
     const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
 async function generarCodigoUnico() {
@@ -156,10 +156,10 @@ app.get('/api/usuario/:id', soloYo, async (req, res) => {
 app.post('/api/premium/solicitar', async (req, res) => {
     const { nombre_solicitante } = req.body; const id_usuario = req.user.id;
     const [user] = await pool.query('SELECT is_premium, cooldown_premium FROM usuarios WHERE id = ?', [id_usuario]);
-    
+
     if (user[0].is_premium) return res.status(400).json({ error: "Ya eres usuario Premium." });
     if (user[0].cooldown_premium && new Date() < new Date(user[0].cooldown_premium)) return res.status(400).json({ error: "Debes esperar 48 horas tras tu último rechazo." });
-    
+
     const [pendientes] = await pool.query("SELECT * FROM solicitudes_premium WHERE id_usuario = ? AND estado = 'pendiente'", [id_usuario]);
     if (pendientes.length > 0) return res.status(400).json({ error: "Ya tienes una solicitud en revisión." });
 
@@ -171,7 +171,7 @@ app.post('/api/premium/activar', async (req, res) => {
     const { key_code } = req.body; const id_usuario = req.user.id;
     const [keys] = await pool.query('SELECT * FROM premium_keys WHERE key_code = ? AND is_used = FALSE AND (id_usuario_asignado IS NULL OR id_usuario_asignado = ?)', [key_code, id_usuario]);
     if (keys.length === 0) return res.status(400).json({ error: "KEY inválida o ya utilizada." });
-    
+
     await pool.query('UPDATE premium_keys SET is_used = TRUE WHERE id = ?', [keys[0].id]);
     await pool.query('UPDATE usuarios SET is_premium = TRUE WHERE id = ?', [id_usuario]);
     res.json({ success: true });
@@ -240,7 +240,7 @@ app.post('/api/admin/premium/apelacion/resolver', async (req, res) => {
 // --- RESTAURANTE ---
 app.post('/api/restaurante/menu/crear', async (req, res) => {
     const { nombre, descripcion, categoria, disponibles } = req.body; const id_restaurante = req.user.id_restaurante;
-    const img_default = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80"; 
+    const img_default = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500&q=80";
     await pool.query('INSERT INTO platillos (id_restaurante, nombre, descripcion, categoria_alimento, imagen_url, disponibles) VALUES (?, ?, ?, ?, ?, ?)', [id_restaurante, nombre, descripcion, categoria, img_default, disponibles]);
     await pool.query('UPDATE restaurantes SET ultima_actividad = NOW() WHERE id = ?', [id_restaurante]);
     res.json({ success: true });
@@ -266,7 +266,7 @@ app.get('/api/restaurantes', async (req, res) => {
     try {
         const [rests] = await pool.query(`SELECT r.id, r.nombre_comercial as nombre, r.direccion, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE u.estado_verificacion = 'aprobado'`);
         res.json(rests);
-    } catch(e) {
+    } catch (e) {
         res.status(500).json({ error: "Error al obtener restaurantes" });
     }
 });
@@ -291,7 +291,7 @@ app.get('/api/restaurantes/:id/menu', async (req, res) => {
             restaurante: rests[0],
             platillos: platillos
         });
-    } catch(e) {
+    } catch (e) {
         console.error('Error al obtener menú del restaurante:', e.message);
         res.status(500).json({ error: 'Error al consultar menú del restaurante' });
     }
@@ -302,14 +302,14 @@ app.post('/api/feed', async (req, res) => {
     const uLat = parseFloat(latUsuario) || 23.7369;
     const uLng = parseFloat(lngUsuario) || -99.1411;
 
-    let radio = 1.5; 
+    let radio = 1.5;
     if (transporte === 'bici') radio = 4.0;
     if (transporte === 'bus') radio = 7.0;
     if (transporte === 'moto') radio = 10.0;
     if (transporte === 'auto') radio = 15.0;
 
     const [rests] = await pool.query(`SELECT r.id, r.nombre_comercial as nombre, r.direccion, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE u.estado_verificacion = 'aprobado'`);
-    
+
     // Calcular distancia real a cada restaurante y ordenar de más cercano a más lejano
     const conDistancia = rests.map(r => ({
         ...r,
@@ -322,8 +322,8 @@ app.post('/api/feed', async (req, res) => {
     if (cercanos.length < 2 && conDistancia.length >= 2) {
         cercanos = conDistancia.slice(0, Math.min(2, conDistancia.length));
     }
-    
-    if(cercanos.length === 0) return res.json({ restaurantes: [], platillos: [] });
+
+    if (cercanos.length === 0) return res.json({ restaurantes: [], platillos: [] });
 
     let restIds = cercanos.map(r => r.id);
     let q = `SELECT p.*, r.nombre_comercial as rest_nombre, r.direccion as rest_direccion, r.latitud as rest_lat, r.longitud as rest_lng FROM platillos p JOIN restaurantes r ON p.id_restaurante = r.id WHERE p.disponibles > 0`;
@@ -331,13 +331,13 @@ app.post('/api/feed', async (req, res) => {
 
     if (categoria || busqueda) {
         q += ` AND r.id_usuario IN (SELECT id FROM usuarios WHERE estado_verificacion = 'aprobado')`;
-        if (categoria) { 
-            q += ` AND (r.categoria = ? OR p.categoria_alimento = ?)`; 
-            params.push(categoria, categoria); 
+        if (categoria) {
+            q += ` AND (r.categoria = ? OR p.categoria_alimento = ?)`;
+            params.push(categoria, categoria);
         }
-        if (busqueda) { 
-            q += ` AND (p.nombre LIKE ? OR p.categoria_alimento LIKE ? OR r.nombre_comercial LIKE ?)`; 
-            params.push(`%${busqueda}%`, `%${busqueda}%`, `%${busqueda}%`); 
+        if (busqueda) {
+            q += ` AND (p.nombre LIKE ? OR p.categoria_alimento LIKE ? OR r.nombre_comercial LIKE ?)`;
+            params.push(`%${busqueda}%`, `%${busqueda}%`, `%${busqueda}%`);
         }
     } else {
         q += ` AND p.id_restaurante IN (?)`;
@@ -345,7 +345,7 @@ app.post('/api/feed', async (req, res) => {
     }
 
     const [platillos] = await pool.query(q, params);
-    
+
     // Adjuntar distancia calculada a cada platillo para mostrar en la interfaz y ordenar de más cercano a más lejano
     const platillosConDist = platillos.map(p => {
         const dist = calcularDistanciaKm(uLat, uLng, Number(p.rest_lat), Number(p.rest_lng));
@@ -414,7 +414,7 @@ app.post('/api/pedidos', soloRol('cliente'), async (req, res) => {
         await conn.commit();
         res.json({ success: true, codigo, id_pedido: r.insertId, segundos: MINUTOS_RECLAMO * 60 });
     } catch (e) {
-        await conn.rollback().catch(() => {});
+        await conn.rollback().catch(() => { });
         console.error("Error crítico al procesar pedido:", e.message);
         res.status(500).json({ error: "Error interno al procesar el pedido. Intenta nuevamente." });
     } finally {
@@ -501,7 +501,7 @@ app.post('/api/pedidos/cancelar', soloRol('cliente'), async (req, res) => {
         await conn.commit();
         res.json({ success: true, mensaje: 'Pedido cancelado con éxito sin strikes.' });
     } catch (e) {
-        await conn.rollback().catch(() => {});
+        await conn.rollback().catch(() => { });
         console.error("Error al cancelar pedido:", e.message);
         res.status(500).json({ error: "Error al cancelar el pedido." });
     } finally {
@@ -566,7 +566,7 @@ app.post('/api/pedidos/cancelar-restaurante', soloRol('restaurante'), async (req
         await conn.commit();
         res.json({ success: true, mensaje: 'Pedido cancelado por el restaurante.' });
     } catch (e) {
-        await conn.rollback().catch(() => {});
+        await conn.rollback().catch(() => { });
         console.error("Error al cancelar por restaurante:", e.message);
         res.status(500).json({ error: "Error al cancelar el pedido." });
     } finally {
@@ -607,10 +607,10 @@ app.post('/api/pedidos/responder', async (req, res) => {
     const { id_cliente, id_platillo, codigo_unico } = mio[0];
     const est = accion === 'aceptada' ? 'entregado' : 'cancelado_restaurante';
     const motivoTexto = accion === 'rechazada' ? String(motivo || 'Cancelado por el restaurante al momento de entrega').trim().slice(0, 255) : null;
-    
+
     const [up] = await pool.query("UPDATE pedidos SET solicitud_entrega = ?, estado = ?, motivo_cancelacion = ? WHERE id = ? AND estado = 'activo'", [accion, est, motivoTexto, id_pedido]);
     if (up.affectedRows === 0) return res.status(400).json({ error: "El pedido ya no está activo (expiró o ya fue atendido)." });
-    
+
     if (accion !== 'aceptada') {
         await pool.query('UPDATE platillos SET disponibles = disponibles + (SELECT COALESCE(cantidad, 1) FROM pedidos WHERE id = ?) WHERE id = ?', [id_pedido, id_platillo]);
         await pool.query(
@@ -618,7 +618,7 @@ app.post('/api/pedidos/responder', async (req, res) => {
             [id_cliente, 'Entrega Cancelada por el Restaurante', `El restaurante no pudo completar la entrega del pedido #${codigo_unico}. ${motivoTexto ? 'Motivo: ' + motivoTexto : ''}`, 'fa-store-slash']
         );
     }
-    
+
     if (accion === 'aceptada') {
         await pool.query('UPDATE usuarios SET puntaje = puntaje + 10 WHERE id = ?', [id_cliente]);
         await pool.query('UPDATE usuarios SET rango = CASE WHEN puntaje >= 150 THEN "Héroe" WHEN puntaje >= 50 THEN "Rescatista" ELSE "Novato" END WHERE id = ?', [id_cliente]);

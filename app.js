@@ -11,10 +11,10 @@ function mostrarToast(mensaje, tipo = 'success') {
     toast.className = `${color} text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-x-full opacity-0 font-medium text-sm flex items-center gap-2`;
     toast.innerHTML = `<i class="fa-solid ${tipo === 'success' ? 'fa-check-circle' : 'fa-circle-exclamation'}"></i> ${mensaje}`;
     container.appendChild(toast);
-    
+
     setTimeout(() => { toast.classList.remove('translate-x-full', 'opacity-0'); }, 10);
-    setTimeout(() => { 
-        toast.classList.add('translate-x-full', 'opacity-0'); 
+    setTimeout(() => {
+        toast.classList.add('translate-x-full', 'opacity-0');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
@@ -75,7 +75,7 @@ function prepararInterfazUsuario() {
     document.getElementById('vista-login').style.transform = 'translateY(-100%)';
     setTimeout(() => {
         document.getElementById('vista-login').classList.add('hidden');
-        
+
         if (usuarioActivo.rol === 'cliente') {
             document.getElementById('vista-cliente').classList.remove('hidden');
             // Personalizar vista cliente
@@ -86,7 +86,7 @@ function prepararInterfazUsuario() {
             document.getElementById('sidebar').classList.remove('hidden');
             document.getElementById('sidebar').classList.add('flex');
             document.getElementById('area-trabajo').classList.remove('hidden');
-            
+
             if (usuarioActivo.rol === 'restaurante') {
                 document.getElementById('vista-restaurante').classList.remove('hidden');
                 document.getElementById('titulo-panel').innerText = `Panel: ${usuarioActivo.nombre}`;
@@ -128,7 +128,7 @@ async function dibujarMarcadores() {
     restaurantes.forEach(rest => {
         const marker = L.marker([rest.lat, rest.lng]).addTo(miMapa);
         marcadores.push(marker);
-        
+
         const popupContent = `
             <div class="text-center w-48">
                 <h3 class="font-bold text-gray-800 text-base mb-1">${rest.nombre}</h3>
@@ -140,7 +140,7 @@ async function dibujarMarcadores() {
     });
 }
 
-window.generarPedido = async function(idRestaurante, nombreRest) {
+window.generarPedido = async function (idRestaurante, nombreRest) {
     if (usuarioActivo.strikes >= 3) return mostrarToast("Cuenta bloqueada por strikes", "error");
 
     const res = await fetch('http://localhost:3000/api/pedidos', {
@@ -154,8 +154,8 @@ window.generarPedido = async function(idRestaurante, nombreRest) {
         mostrarToast(data.error, "error");
     } else {
         miMapa.closePopup();
-        dibujarMarcadores(); 
-        
+        dibujarMarcadores();
+
         document.getElementById('txt-restaurante-pedido').innerText = nombreRest;
         document.getElementById('txt-codigo').innerText = data.codigo;
         document.getElementById('widget-pedido').classList.remove('hidden');
@@ -167,7 +167,7 @@ window.generarPedido = async function(idRestaurante, nombreRest) {
 function iniciarTemporizadorVisual() {
     let segundosRestantes = 30 * 60;
     if (temporizadorInterval) clearInterval(temporizadorInterval);
-    
+
     temporizadorInterval = setInterval(() => {
         segundosRestantes--;
         if (segundosRestantes <= 0) {
@@ -178,7 +178,7 @@ function iniciarTemporizadorVisual() {
         } else {
             let m = Math.floor(segundosRestantes / 60);
             let s = segundosRestantes % 60;
-            document.getElementById('txt-temporizador').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('txt-temporizador').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
     }, 1000);
 }
@@ -191,7 +191,7 @@ async function cargarStatsRestaurante() {
     document.getElementById('stat-entregados').innerText = stats.platillos_entregados;
 }
 
-window.publicarComida = async function() {
+window.publicarComida = async function () {
     const cantidad = parseInt(document.getElementById('input-publicar').value);
     if (!cantidad || cantidad <= 0) return mostrarToast("Ingresa una cantidad válida", "error");
 
@@ -200,13 +200,13 @@ window.publicarComida = async function() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id_restaurante: usuarioActivo.id_restaurante, cantidad: cantidad })
     });
-    
+
     document.getElementById('input-publicar').value = '';
     cargarStatsRestaurante();
     mostrarToast("Inventario actualizado", "success");
 }
 
-window.validarCodigo = async function() {
+window.validarCodigo = async function () {
     const codigo = document.getElementById('input-validar').value.trim().toUpperCase();
     if (!codigo) return;
 
