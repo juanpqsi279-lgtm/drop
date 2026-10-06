@@ -80,6 +80,10 @@
             
             <hr class="border-[var(--border-color)] my-4">
             
+            <button onclick="abrirTerminos()" class="w-full text-left flex items-center gap-4 text-base font-semibold hover:text-[#00e676] opacity-80 hover:opacity-100 transition"><i class="fa-solid fa-file-shield w-6 text-[#00e676]"></i> Términos y Condiciones</button>
+
+            <hr class="border-[var(--border-color)] my-4">
+            
             <div>
                 <span class="font-semibold flex items-center gap-4 mb-3"><i class="fa-solid fa-palette w-6"></i> Temas <span id="lbl-tema-prem" class="text-[10px] bg-amber-500 text-black px-2 py-0.5 rounded-full hidden">Premium</span></span>
                 <div class="grid grid-cols-3 gap-2">
@@ -112,6 +116,7 @@
                     <button type="submit" class="w-full btn-sg py-4 text-lg shadow-lg">Entrar</button>
                 </form>
                 <p class="mt-6 text-center text-sm font-bold opacity-80">¿No tienes cuenta? <button onclick="toggleModo('registro')" class="text-[#00e676] hover:underline">Regístrate</button></p>
+                <p class="mt-3 text-center text-[11px] opacity-60">Al acceder aceptas los <button type="button" onclick="abrirTerminos()" class="underline hover:text-[#00e676]">Términos y Condiciones</button> de drop.</p>
             </div>
 
             <div id="div-registro" class="hidden">
@@ -133,7 +138,16 @@
                         <div id="mapa-mini" class="w-full h-32 rounded-xl hidden border border-[var(--border-color)]"></div>
                         <input type="hidden" id="reg-lat"><input type="hidden" id="reg-lng">
                     </div>
-                    <button type="submit" class="w-full btn-sg py-4 mt-4">Crear Cuenta</button>
+
+                    <!-- Casilla obligatoria de Términos y Condiciones -->
+                    <div class="flex items-start gap-2 pt-2 text-xs">
+                        <input type="checkbox" id="reg-terminos" required class="mt-0.5 accent-[#00e676] cursor-pointer w-4 h-4 rounded">
+                        <label for="reg-terminos" class="opacity-80 leading-tight cursor-pointer">
+                            He leído y acepto los <button type="button" onclick="abrirTerminos()" class="text-[#00e676] font-bold underline hover:brightness-125">Términos y Condiciones</button> y la regla de 3 strikes por pedidos no recogidos.
+                        </label>
+                    </div>
+
+                    <button type="submit" class="w-full btn-sg py-4 mt-3">Crear Cuenta</button>
                 </form>
                 <p class="mt-4 text-center text-sm font-bold opacity-80">¿Ya tienes cuenta? <button onclick="toggleModo('login')" class="text-[#00e676] hover:underline">Inicia Sesión</button></p>
             </div>
@@ -161,32 +175,60 @@
     <!-- UI CLIENTE (SUPERAPP) -->
     <main id="vista-cliente" class="hidden flex w-full h-full pt-20 px-4 pb-4 overflow-y-auto hide-scroll flex-col gap-6">
         <div id="banner-bloqueo" class="hidden glass-panel p-4 border-l-4 border-red-500 flex flex-col md:flex-row md:items-center justify-between gap-3 shrink-0 mt-4"><div><div class="font-extrabold text-red-500"><i class="fa-solid fa-ban mr-2"></i>Cuenta bloqueada por 3 strikes</div><p class="text-xs opacity-70">No reclamaste tus pedidos a tiempo. Puedes apelar y un administrador decidirá.</p></div><button onclick="toggleModal('modal-apelar-strikes')" class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow">Apelar bloqueo</button></div>
-        <div class="flex flex-col md:flex-row gap-4 items-center glass-panel p-4 rounded-2xl shrink-0 mt-4">
-            <div class="flex-grow flex gap-2 w-full">
-                <button onclick="geolocalizar()" class="bg-[#00e676] text-[#004e36] px-4 rounded-xl shadow font-bold"><i class="fa-solid fa-location-crosshairs"></i></button>
-                <input type="text" id="input-ubicacion" placeholder="Tu dirección actual..." class="w-full glass-input px-4 py-3 font-semibold text-sm">
-                <button onclick="buscarUbicacion()" class="bg-gray-500/20 px-4 rounded-xl font-bold hover:bg-gray-500/40">Ir</button>
+        <div class="glass-panel p-4 rounded-2xl shrink-0 mt-4 space-y-3">
+            <div class="flex flex-col md:flex-row gap-3 items-center">
+                <div class="flex-grow flex gap-2 w-full">
+                    <button type="button" onclick="geolocalizar()" title="Detectar mi ubicación GPS" class="bg-[#00e676] text-[#004e36] px-4 py-3 rounded-xl shadow font-black flex items-center gap-1.5 hover:brightness-110 transition shrink-0">
+                        <i class="fa-solid fa-location-crosshairs text-base"></i>
+                        <span class="text-xs hidden sm:inline">Mi GPS</span>
+                    </button>
+                    <input type="text" id="input-ubicacion" onkeydown="if(event.key==='Enter') buscarUbicacion()" placeholder="Busca colonia o calle en Cd. Victoria..." class="w-full glass-input px-4 py-3 font-semibold text-sm">
+                    <button type="button" onclick="buscarUbicacion()" class="bg-gray-500/20 px-4 py-3 rounded-xl font-bold hover:bg-gray-500/40 transition shrink-0">Ir</button>
+                </div>
+                <div class="bg-gray-500/10 rounded-xl p-1 flex shrink-0 gap-1 overflow-x-auto w-full md:w-auto justify-center">
+                    <button onclick="cambiarTransporte('pie')" id="btn-t-pie" title="A pie (1.5 km)" class="px-3 py-2 rounded-lg text-sm font-bold bg-[var(--panel-bg)] shadow transition"><i class="fa-solid fa-person-walking"></i></button>
+                    <button onclick="cambiarTransporte('bici')" id="btn-t-bici" title="En bici (4 km)" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bicycle"></i></button>
+                    <button onclick="cambiarTransporte('bus')" id="btn-t-bus" title="En transporte público (7 km)" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bus"></i></button>
+                    <button onclick="cambiarTransporte('moto')" id="btn-t-moto" title="En moto (10 km)" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-motorcycle"></i></button>
+                    <button onclick="cambiarTransporte('auto')" id="btn-t-auto" title="En auto (15 km)" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-car"></i></button>
+                </div>
             </div>
-            <div class="bg-gray-500/10 rounded-xl p-1 flex shrink-0 gap-1 overflow-x-auto">
-                <button onclick="cambiarTransporte('pie')" id="btn-t-pie" class="px-3 py-2 rounded-lg text-sm font-bold bg-[var(--panel-bg)] shadow transition"><i class="fa-solid fa-person-walking"></i></button>
-                <button onclick="cambiarTransporte('bici')" id="btn-t-bici" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bicycle"></i></button>
-                <button onclick="cambiarTransporte('bus')" id="btn-t-bus" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-bus"></i></button>
-                <button onclick="cambiarTransporte('moto')" id="btn-t-moto" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-motorcycle"></i></button>
-                <button onclick="cambiarTransporte('auto')" id="btn-t-auto" class="px-3 py-2 rounded-lg text-sm font-bold opacity-50 transition"><i class="fa-solid fa-car"></i></button>
+
+            <!-- Accesos rápidos a zonas de Ciudad Victoria -->
+            <div class="flex items-center gap-1.5 overflow-x-auto hide-scroll pt-1 pb-0.5 text-xs">
+                <span class="opacity-60 font-bold shrink-0 text-[11px] mr-1"><i class="fa-solid fa-map-location-dot text-[#00e676]"></i> Zonas Cd. Victoria:</span>
+                <button type="button" onclick="irAZona(23.7369, -99.1411, 'Zona Centro')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🏙️ Centro</button>
+                <button type="button" onclick="irAZona(23.7545, -99.1485, 'Calle 8')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🍔 Calle 8</button>
+                <button type="button" onclick="irAZona(23.7725, -99.1540, 'Fracc. Campestre')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🏡 Campestre</button>
+                <button type="button" onclick="irAZona(23.7875, -99.1570, 'La Salle Norte')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🏫 La Salle</button>
+                <button type="button" onclick="irAZona(23.7188, -99.1715, 'Tamatán')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🌿 Tamatán</button>
+                <button type="button" onclick="irAZona(23.7418, -99.1225, 'Fracc. Las Flores')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🌸 Las Flores</button>
+                <button type="button" onclick="irAZona(23.7625, -99.1125, 'Bicentenario')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🏢 Bicentenario</button>
+                <button type="button" onclick="irAZona(23.7225, -99.1525, 'Campus UAT')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🎓 UAT</button>
+                <button type="button" onclick="irAZona(23.7485, -99.1705, 'Pedro J. Méndez')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">⛰️ Poniente</button>
+                <button type="button" onclick="irAZona(23.7082, -99.1125, 'Col. Satélite')" class="px-3 py-1 rounded-full bg-gray-500/10 hover:bg-[#00e676]/20 hover:text-[#00e676] font-bold shrink-0 transition">🚀 Satélite</button>
             </div>
         </div>
 
-        <div id="mapa-container" class="relative w-full h-48 rounded-3xl overflow-hidden shadow-lg border-2 border-[var(--border-color)] shrink-0 transition-all duration-500">
+        <div id="mapa-container" class="relative w-full h-56 rounded-3xl overflow-hidden shadow-lg border-2 border-[var(--border-color)] shrink-0 transition-all duration-500">
             <div id="mapa" class="w-full h-full z-0"></div>
-            <button onclick="toggleMapa()" class="absolute bottom-4 right-4 z-10 bg-black/50 text-white p-3 rounded-full shadow-lg backdrop-blur text-xl hover:bg-black/80"><i class="fa-solid fa-expand" id="icon-expand"></i></button>
+            <div class="absolute top-3 left-3 z-10 bg-white/90 dark:bg-black/90 backdrop-blur-md px-3 py-1.5 rounded-full text-[11px] font-bold shadow flex items-center gap-2 pointer-events-none border border-[var(--border-color)]">
+                <span class="w-2 h-2 rounded-full bg-[#00e676] animate-pulse"></span>
+                <span>Toca el mapa o arrastra el pin verde para mover tu punto</span>
+            </div>
+            <button onclick="toggleMapa()" class="absolute bottom-4 right-4 z-10 bg-black/60 text-white p-3 rounded-full shadow-lg backdrop-blur text-xl hover:bg-black/80 transition"><i class="fa-solid fa-expand" id="icon-expand"></i></button>
         </div>
 
         <div class="shrink-0">
-            <div class="flex gap-4 overflow-x-auto hide-scroll pb-2">
-                <div onclick="filtrarCategoria('Pizzería')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🍕</div><div class="font-bold text-sm">Pizzería</div></div>
-                <div onclick="filtrarCategoria('Rápida')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🍔</div><div class="font-bold text-sm">Rápida</div></div>
-                <div onclick="filtrarCategoria('Saludable')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🥗</div><div class="font-bold text-sm">Saludable</div></div>
-                <div onclick="filtrarCategoria('Fondita')" class="min-w-[120px] glass-panel p-4 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-3xl mb-2">🌮</div><div class="font-bold text-sm">Fondita</div></div>
+            <div class="flex gap-3 overflow-x-auto hide-scroll pb-2">
+                <div onclick="filtrarCategoria('')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">✨</div><div class="font-bold text-xs">Todos</div></div>
+                <div onclick="filtrarCategoria('Pizzería')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🍕</div><div class="font-bold text-xs">Pizzería</div></div>
+                <div onclick="filtrarCategoria('Rápida')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🍔</div><div class="font-bold text-xs">Rápida</div></div>
+                <div onclick="filtrarCategoria('Saludable')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🥗</div><div class="font-bold text-xs">Saludable</div></div>
+                <div onclick="filtrarCategoria('Fondita')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🍲</div><div class="font-bold text-xs">Fondita</div></div>
+                <div onclick="filtrarCategoria('Tacos')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🌮</div><div class="font-bold text-xs">Tacos</div></div>
+                <div onclick="filtrarCategoria('Cafetería')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">☕</div><div class="font-bold text-xs">Cafetería</div></div>
+                <div onclick="filtrarCategoria('Mariscos')" class="min-w-[105px] glass-panel p-3 rounded-2xl text-center cursor-pointer shadow hover:scale-105 transition"><div class="text-2xl mb-1">🦐</div><div class="font-bold text-xs">Mariscos</div></div>
             </div>
         </div>
 
@@ -278,8 +320,121 @@
             <div class="tracker-step" id="step-3"><div class="tracker-icon"><i class="fa-solid fa-bag-shopping"></i></div><span class="text-[10px] font-bold uppercase mt-1">Listo</span></div><div class="tracker-line" id="line-3"></div>
             <div class="tracker-step" id="step-4"><div class="tracker-icon"><i class="fa-solid fa-face-smile-tasting"></i></div><span class="text-[10px] font-bold uppercase mt-1">Entregado</span></div>
         </div>
-        <button id="btn-trk-accion" onclick="solicitarEntrega()" class="mt-8 w-full btn-sg py-4 font-extrabold text-lg flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition"><i class="fa-solid fa-location-arrow"></i> Llegué al Local</button>
+        <div class="flex gap-3 mt-6">
+            <button id="btn-trk-accion" onclick="solicitarEntrega()" class="flex-1 btn-sg py-3.5 font-extrabold text-base flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] transition"><i class="fa-solid fa-location-arrow"></i> Llegué al Local</button>
+            <button type="button" onclick="abrirModalCancelarPedido()" id="btn-trk-cancelar" class="px-5 py-3.5 rounded-full font-bold text-xs bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white border border-red-500/30 transition flex items-center gap-1.5 shrink-0" title="Cancelar pedido sin strikes"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+        </div>
         <div id="lbl-estado-entrega" class="text-center text-sm font-bold text-orange-500 mt-4 hidden animate-pulse">Drop asegurado. Notificando al local...</div>
+    </div>
+
+    <!-- Modal Menú del Restaurante -->
+    <div id="modal-menu-restaurante" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[200] flex items-center justify-center p-3 md:p-6 transition-opacity">
+        <div class="w-full max-w-2xl max-h-[90vh] glass-panel !p-0 overflow-hidden shadow-2xl flex flex-col border border-[var(--border-color)]">
+            <div class="p-5 border-b border-[var(--border-color)] flex justify-between items-start bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 id="menu-rest-nombre" class="text-xl md:text-2xl font-black">Restaurante</h3>
+                        <span id="menu-rest-cat" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#00e676]/20 text-[#00e676] border border-[#00e676]/30">Categoría</span>
+                    </div>
+                    <p id="menu-rest-dir" class="text-xs opacity-70 mt-1 flex items-center gap-1"><i class="fa-solid fa-location-dot text-[#00e676]"></i> Dirección</p>
+                    <div class="flex items-center gap-3 mt-2 text-xs font-bold">
+                        <span id="menu-rest-rating" class="text-amber-500">★ 4.9</span>
+                        <span class="text-emerald-500 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Local Verificado drop.</span>
+                    </div>
+                </div>
+                <button onclick="toggleModal('modal-menu-restaurante')" class="w-9 h-9 rounded-full bg-gray-500/20 hover:bg-gray-500/40 flex items-center justify-center text-lg transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="px-5 py-2.5 bg-gray-500/5 text-xs font-bold opacity-80 flex items-center justify-between border-b border-[var(--border-color)]">
+                <span><i class="fa-solid fa-utensils text-[#00e676] mr-1"></i> Platillos y Drops Disponibles</span>
+                <span class="text-[11px] opacity-60">Pide directamente con precio de rescate</span>
+            </div>
+            <div id="menu-restaurante-items" class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-3.5 flex-grow hide-scroll"></div>
+        </div>
+    </div>
+
+    <!-- Modal Cancelar Pedido Cliente (Sin Strikes) -->
+    <div id="modal-cancelar-pedido" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[210] flex items-center justify-center p-4">
+        <div class="w-full max-w-md glass-panel p-6 shadow-2xl relative border-t-4 border-red-500">
+            <button onclick="toggleModal('modal-cancelar-pedido')" class="absolute top-4 right-4 text-xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="text-center mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-2xl mx-auto mb-2"><i class="fa-solid fa-ban"></i></div>
+                <h3 class="text-xl font-black">Cancelar Pedido</h3>
+                <p class="text-xs opacity-70 mt-1">¿Estás seguro de que deseas cancelar este Drop?</p>
+            </div>
+
+            <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-semibold leading-relaxed mb-4">
+                <i class="fa-solid fa-shield-halved mr-1 text-sm text-amber-500"></i>
+                <b>Política de rescate:</b> Cancelar a tiempo libera la comida para que otro la aproveche. <b>No recibirás strikes</b> (tu reputación se ajustará levemente en -0.1⭐).
+            </div>
+
+            <label class="block text-xs font-bold opacity-80 mb-2">Selecciona el motivo de cancelación:</label>
+            <div class="space-y-2 text-xs font-semibold max-h-48 overflow-y-auto pr-1">
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="No puedo llegar a tiempo al local" checked class="accent-[#00e676]">
+                    <span>No puedo llegar a tiempo al local</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="Emergencia personal o de fuerza mayor" class="accent-[#00e676]">
+                    <span>Emergencia personal o de fuerza mayor</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="Elegí el restaurante o platillo equivocado" class="accent-[#00e676]">
+                    <span>Elegí el restaurante o platillo equivocado</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="El tiempo límite no se acomoda a mi horario" class="accent-[#00e676]">
+                    <span>El tiempo límite no se acomoda a mi horario</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="Problemas con el transporte o tráfico pesado" class="accent-[#00e676]">
+                    <span>Problemas con el transporte o tráfico pesado</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="Ya no necesito el pedido" class="accent-[#00e676]">
+                    <span>Ya no necesito el pedido</span>
+                </label>
+                <label class="flex items-center gap-2 p-2.5 rounded-xl glass-input cursor-pointer hover:border-[#00e676] transition">
+                    <input type="radio" name="motivo_cancelacion_cliente" value="Otro motivo" class="accent-[#00e676]">
+                    <span>Otro motivo (especificar abajo)</span>
+                </label>
+            </div>
+
+            <div class="mt-3">
+                <label class="block text-xs font-bold opacity-70 mb-1">Detalle o explicación (opcional):</label>
+                <textarea id="input-detalle-cancelacion" rows="2" maxlength="200" placeholder="Escribe aquí si deseas dar más contexto..." class="w-full glass-input p-2.5 text-xs font-medium rounded-xl"></textarea>
+            </div>
+
+            <div class="flex gap-2 mt-4">
+                <button type="button" onclick="toggleModal('modal-cancelar-pedido')" class="flex-1 py-3 rounded-xl font-bold text-xs bg-gray-500/20 hover:bg-gray-500/30 transition">Volver al Pedido</button>
+                <button type="button" id="btn-confirmar-cancel-cliente" onclick="confirmarCancelacionCliente()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-red-500 text-white hover:bg-red-600 transition shadow flex items-center justify-center gap-1.5"><i class="fa-solid fa-xmark"></i> Confirmar Cancelación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cancelar Pedido Restaurante (Motivo por Escrito) -->
+    <div id="modal-cancelar-restaurante" class="hidden fixed inset-0 bg-black/60 backdrop-blur-md z-[210] flex items-center justify-center p-4">
+        <div class="w-full max-w-md glass-panel p-6 shadow-2xl relative border-t-4 border-red-500">
+            <button onclick="toggleModal('modal-cancelar-restaurante')" class="absolute top-4 right-4 text-xl opacity-50 hover:opacity-100 transition"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div class="text-center mb-4">
+                <div class="w-12 h-12 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center text-2xl mx-auto mb-2"><i class="fa-solid fa-store-slash"></i></div>
+                <h3 class="text-xl font-black">Cancelar Pedido de Cliente</h3>
+                <p id="lbl-cancelar-rest-info" class="text-xs opacity-70 mt-1 font-semibold">Pedido de cliente</p>
+            </div>
+
+            <p class="text-xs opacity-80 mb-3 leading-relaxed">
+                Por política de transparencia con el cliente, debes explicar el motivo por escrito. El cliente será notificado de inmediato y <b>no recibirá penalización</b>.
+            </p>
+
+            <label class="block text-xs font-bold opacity-80 mb-1">Motivo de la cancelación (obligatorio):</label>
+            <textarea id="motivo-cancelar-rest" rows="3" minlength="4" maxlength="255" placeholder="Ej: Se terminaron los ingredientes en cocina / Cierre de emergencia por falla eléctrica..." class="w-full glass-input p-3 text-xs font-medium rounded-xl mb-4"></textarea>
+
+            <div class="flex gap-2">
+                <button type="button" onclick="toggleModal('modal-cancelar-restaurante')" class="flex-1 py-3 rounded-xl font-bold text-xs bg-gray-500/20 hover:bg-gray-500/30 transition">Regresar</button>
+                <button type="button" id="btn-confirmar-cancel-rest" onclick="confirmarCancelacionRestaurante()" class="flex-1 py-3 rounded-xl font-bold text-xs bg-red-500 text-white hover:bg-red-600 transition shadow flex items-center justify-center gap-1.5"><i class="fa-solid fa-ban"></i> Cancelar Pedido</button>
+            </div>
+        </div>
     </div>
 
     <!-- Modales Sistema Premium -->
@@ -336,6 +491,11 @@
             <div class="grid grid-cols-2 gap-4 mt-6">
                 <div class="glass-input p-4 rounded-xl"><div class="text-[10px] font-bold uppercase opacity-50">Reputación</div><div class="text-xl font-black text-amber-500" id="prof-estrellas">5.0 <i class="fa-solid fa-star text-xs"></i></div></div>
                 <div class="glass-input p-4 rounded-xl"><div class="text-[10px] font-bold uppercase opacity-50">Puntos</div><div class="text-xl font-black text-[#00e676]" id="prof-puntos">0</div></div>
+            </div>
+            <div class="mt-5 pt-3 border-t border-[var(--border-color)]">
+                <button type="button" onclick="abrirTerminos()" class="text-xs font-semibold opacity-60 hover:opacity-100 hover:text-[#00e676] transition flex items-center justify-center gap-1.5 mx-auto">
+                    <i class="fa-solid fa-file-shield text-[#00e676]"></i> Términos y Condiciones del Servicio
+                </button>
             </div>
         </div>
     </div>
@@ -416,6 +576,123 @@
             <div id="op-pendientes" class="hidden mb-5"><h3 class="text-xs uppercase font-bold opacity-60 mb-2">Por calificar</h3><div id="op-pend-lista" class="space-y-2"></div></div>
             <h3 class="text-xs uppercase font-bold opacity-60 mb-2">Lo que opinan de ti</h3>
             <div id="op-lista" class="space-y-3"></div>
+    </div>
+
+    <!-- MODAL TÉRMINOS Y CONDICIONES -->
+    <div id="modal-terminos" class="hidden fixed inset-0 bg-black/70 backdrop-blur-md z-[260] flex justify-center items-center p-4">
+        <div class="w-full max-w-2xl glass-panel p-6 sm:p-8 relative max-h-[88vh] flex flex-col shadow-2xl border-t-4 border-[#00e676]">
+            <!-- Encabezado -->
+            <div class="flex items-start justify-between pb-4 border-b border-[var(--border-color)] shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-[#00e676]/20 border border-[#00e676]/40 flex items-center justify-center text-2xl text-[#00e676] shrink-0">
+                        <i class="fa-solid fa-file-shield"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">Términos y Condiciones <span class="text-xs bg-[#00e676]/20 text-[#00e676] px-2 py-0.5 rounded-full font-bold">drop. Cd. Victoria</span></h2>
+                        <p class="text-xs opacity-60 font-semibold mt-0.5">Última actualización: Octubre 2026 · Ciudad Victoria, Tamaulipas</p>
+                    </div>
+                </div>
+                <button type="button" onclick="toggleModal('modal-terminos')" class="text-2xl opacity-50 hover:opacity-100 hover:text-red-500 transition p-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Contenido scrollable -->
+            <div class="overflow-y-auto hide-scroll py-4 space-y-5 text-sm leading-relaxed pr-1 flex-grow">
+                
+                <!-- Resumen destacado -->
+                <div class="bg-[var(--input-bg)] border-l-4 border-[#00e676] p-4 rounded-xl space-y-1">
+                    <div class="font-extrabold text-sm text-[#00e676] flex items-center gap-2">
+                        <i class="fa-solid fa-seedling"></i> Compromiso Comunitario Anti-Desperdicio
+                    </div>
+                    <p class="text-xs opacity-80">
+                        Bienvenido a <strong>drop.</strong>, la plataforma local que conecta a vecinos de Ciudad Victoria con restaurantes, fonditas, cafeterías y panaderías para rescatar comida excedente del día en perfecto estado a precios de rescate. Al utilizar la aplicación como Cliente o Restaurante, aceptas las presentes reglas comunitarias.
+                    </p>
+                </div>
+
+                <!-- Cláusula 1: Naturaleza del Servicio -->
+                <section class="space-y-1.5">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-emerald-500">
+                        <i class="fa-solid fa-bullseye"></i> 1. Naturaleza del Servicio y Rescate de Alimentos
+                    </h3>
+                    <p class="opacity-80 text-xs sm:text-sm">
+                        1.1. <strong>drop.</strong> actúa como intermediario tecnológico comunitario entre comercios alimentarios verificados y consumidores conscientes en Ciudad Victoria, Tamaulipas.<br>
+                        1.2. Los productos ofrecidos como "Drops" corresponden a excedentes del turno, platillos frescos preparados el mismo día que no fueron vendidos en el horario pico, en óptimas condiciones de inocuidad y sabor.<br>
+                        1.3. La disponibilidad de los platillos es limitada e inmediata; no se garantiza inventario permanente de ningún producto.
+                    </p>
+                </section>
+
+                <!-- Cláusula 2: Regla de los 3 Strikes -->
+                <section class="space-y-2 bg-red-500/10 border border-red-500/30 p-4 rounded-2xl">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-red-500">
+                        <i class="fa-solid fa-triangle-exclamation"></i> 2. Sistema de Strikes y Política Anti-Abandono
+                    </h3>
+                    <p class="opacity-90 text-xs sm:text-sm">
+                        Para proteger la economía de los negocios locales y asegurar que los alimentos no terminen en la basura:
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-xs opacity-85 ml-1">
+                        <li><strong>Tolerancia de retiro:</strong> Al apartar un Drop, dispones de <strong>30 minutos</strong> (o el temporizador visible en tu pantalla) para presentarte físicamente en el local y mostrar tu <strong>Código Único</strong>.</li>
+                        <li><strong>Inasistencia (No-Show):</strong> Si un pedido expira sin ser reclamado, el inventario se devuelve automáticamente al sistema y el usuario recibirá <strong>1 Strike</strong> de penalización.</li>
+                        <li><strong>Bloqueo por 3 Strikes:</strong> Al acumular <strong>3 strikes</strong>, la cuenta queda automáticamente suspendida e inhabilitada para apartar nuevos drops.</li>
+                        <li><strong>Derecho de Apelación:</strong> Los usuarios bloqueados pueden someter una apelación desde su perfil exponiendo causas justificadas, la cual será auditada por el equipo administrativo.</li>
+                    </ul>
+                </section>
+
+                <!-- Cláusula 3: Calidad e Higiene -->
+                <section class="space-y-1.5">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-blue-500">
+                        <i class="fa-solid fa-utensils"></i> 3. Responsabilidad Sanitaria y Locales Registrados
+                    </h3>
+                    <p class="opacity-80 text-xs sm:text-sm">
+                        3.1. Cada establecimiento registrado se compromete a manipular y conservar los alimentos conforme a la <strong>Norma Oficial Mexicana NOM-251-SSA1</strong> (prácticas de higiene para el proceso de alimentos).<br>
+                        3.2. Todo restaurante debe pasar por un proceso de verificación administrativa antes de poder publicar drops en el radar de Ciudad Victoria.<br>
+                        3.3. El cliente tiene el deber de inspeccionar visualmente su paquete al momento de la entrega en el establecimiento antes de retirarse.
+                    </p>
+                </section>
+
+                <!-- Cláusula 4: Geolocalización -->
+                <section class="space-y-1.5">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-teal-500">
+                        <i class="fa-solid fa-location-crosshairs"></i> 4. Ubicación y Radios de Transporte
+                    </h3>
+                    <p class="opacity-80 text-xs sm:text-sm">
+                        4.1. El radar calcula radios de alcance basados en el medio de transporte seleccionado (1.5 km a pie, 4 km bici, 7 km transporte público, 10 km moto, 15 km auto) para asegurar que el usuario pueda trasladarse a tiempo.<br>
+                        4.2. El usuario es responsable de calcular sus tiempos de trayecto dentro de la vialidad de Ciudad Victoria para no exceder el límite del temporizador.
+                    </p>
+                </section>
+
+                <!-- Cláusula 5: Membresía Premium y Llaves -->
+                <section class="space-y-1.5">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-amber-500">
+                        <i class="fa-solid fa-crown"></i> 5. Suscripción y Licencias Premium
+                    </h3>
+                    <p class="opacity-80 text-xs sm:text-sm">
+                        5.1. Las llaves (KEYS) de activación Premium otorgan acceso anticipado a Drops exclusivos y personalización de temas visuales.<br>
+                        5.2. El mal uso de la plataforma o acumulación de faltas puede ocasionar la revocación de la membresía con un periodo de enfriamiento (cooldown) de 48 horas.
+                    </p>
+                </section>
+
+                <!-- Cláusula 6: Privacidad y Datos -->
+                <section class="space-y-1.5">
+                    <h3 class="font-extrabold text-base flex items-center gap-2 text-purple-500">
+                        <i class="fa-solid fa-shield-halved"></i> 6. Privacidad y Tratamiento de Datos
+                    </h3>
+                    <p class="opacity-80 text-xs sm:text-sm">
+                        6.1. La información recabada (nombre, correo electrónico y coordenadas para geolocalización) se emplea exclusivamente para la operación del servicio y no se comparte con terceros con fines comerciales ajenos a <strong>drop.</strong><br>
+                        6.2. En cualquier momento el usuario puede solicitar la eliminación de su cuenta y registros comunicándose con administración.
+                    </p>
+                </section>
+
+            </div>
+
+            <!-- Acciones al pie -->
+            <div class="pt-4 border-t border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+                <span class="text-xs opacity-60 font-semibold text-center sm:text-left">Al usar drop. contribuyes al rescate ambiental en Tamaulipas.</span>
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button type="button" onclick="toggleModal('modal-terminos')" class="px-5 py-2.5 rounded-xl bg-gray-500/10 hover:bg-gray-500/20 font-bold text-xs transition flex-1 sm:flex-none">Cerrar</button>
+                    <button type="button" onclick="aceptarTerminosDesdeModal()" class="px-6 py-2.5 rounded-xl btn-sg font-extrabold text-xs shadow-lg transition flex-1 sm:flex-none flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-check"></i> Entendido y Acepto
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -433,10 +710,16 @@
         };
         let premPrevio = null, resenaCtx = null, cantidadSel = 1, maxCantidad = 1, usuariosCache = [];
         const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        let usuarioActivo = null, revocadoActivo = false, miMapa = null, miniMapa = null, mrkMini = null, marcadores = [], circuloRango = null;
+        let usuarioActivo = null, revocadoActivo = false, miMapa = null, miniMapa = null, mrkMini = null, marcadorUsuario = null, marcadores = [], circuloRango = null;
         let mapPolling = null, temporizadorInterval = null, pollingInterval = null, notisPolling = null, adminPolling = null;
         let pedidoParaResenar = null, pedidoActualId = null, restauranteAcalificar = null, ratingTemp = 5;
         let transporteActivo = 'pie', usuarioLat = 23.7369, usuarioLng = -99.1411, categoriaFiltro = '', busquedaActual = '', mapaExpandido = false;
+
+        function calcularDistanciaKmClient(lat1, lon1, lat2, lon2) {
+            const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+        }
 
         // --- CORE UI Y TEMAS ---
         window.onload = () => {
@@ -450,8 +733,12 @@
             document.documentElement.className = savedTheme;
             { const tg = document.getElementById('theme-toggle'); if(tg) tg.checked = (savedTheme !== 'light'); }
             if(miMapa) {
-                const layer = document.querySelector('.leaflet-layer');
-                if(layer) layer.style.filter = (savedTheme !== 'light') ? 'invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%)' : 'none';
+                const layer = document.querySelector('#mapa .leaflet-layer');
+                if(layer) layer.style.filter = (savedTheme !== 'light') ? 'invert(90%) hue-rotate(180deg) brightness(85%) contrast(90%)' : 'none';
+            }
+            if(miniMapa) {
+                const miniLayer = document.querySelector('#mapa-mini .leaflet-layer');
+                if(miniLayer) miniLayer.style.filter = (savedTheme !== 'light') ? 'invert(90%) hue-rotate(180deg) brightness(85%) contrast(90%)' : 'none';
             }
         }
 
@@ -496,13 +783,36 @@
                 const lat = data[0].lat, lng = data[0].lon;
                 document.getElementById('reg-lat').value = lat; document.getElementById('reg-lng').value = lng;
                 document.getElementById('mapa-mini').classList.remove('hidden');
-                if(!miniMapa) { miniMapa = L.map('mapa-mini', {zoomControl: false}).setView([lat, lng], 16); L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}').addTo(miniMapa); } else miniMapa.setView([lat, lng], 16);
+                if(!miniMapa) { 
+                    miniMapa = L.map('mapa-mini', {zoomControl: false}).setView([lat, lng], 16); 
+                    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                        maxZoom: 20,
+                        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                        attribution: '&copy; Google Maps'
+                    }).addTo(miniMapa); 
+                } else miniMapa.setView([lat, lng], 16);
                 if(mrkMini) miniMapa.removeLayer(mrkMini); mrkMini = L.marker([lat, lng]).addTo(miniMapa);
             } else mostrarToast("Dirección no encontrada", "error");
         }
 
+        function abrirTerminos() {
+            const m = document.getElementById('modal-terminos');
+            if (m) m.classList.remove('hidden');
+        }
+
+        function aceptarTerminosDesdeModal() {
+            const chk = document.getElementById('reg-terminos');
+            if (chk) chk.checked = true;
+            toggleModal('modal-terminos');
+            mostrarToast("Términos aceptados", "success");
+        }
+
         async function procesarRegistro(e) {
             e.preventDefault();
+            const chk = document.getElementById('reg-terminos');
+            if (chk && !chk.checked) {
+                return mostrarToast("Debes aceptar los Términos y Condiciones para continuar.", "error");
+            }
             const p = { nombre: document.getElementById('reg-nombre').value, correo: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value, rol: rolRegistro };
             if(rolRegistro === 'restaurante') {
                 p.nombre_comercial = document.getElementById('reg-comercial').value; p.direccion = document.getElementById('reg-direccion').value; p.lat = document.getElementById('reg-lat').value; p.lng = document.getElementById('reg-lng').value;
@@ -510,7 +820,7 @@
             }
             const res = await fetch('http://localhost:3000/api/registro', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(p) });
             const data = await res.json();
-            if(data.error) mostrarToast(data.error, "error"); else { mostrarToast("Cuenta creada"); toggleModo('login'); }
+            if(data.error) mostrarToast(data.error, "error"); else { mostrarToast("Cuenta creada exitosamente"); toggleModo('login'); }
         }
 
         async function procesarLogin(e) {
@@ -606,24 +916,153 @@
         // --- MAPA CLIENTE Y RADIOS FÍSICOS REFINADOS ---
         function toggleMapa() {
             mapaExpandido = !mapaExpandido;
-            document.getElementById('mapa-container').classList.toggle('h-48', !mapaExpandido);
-            document.getElementById('mapa-container').classList.toggle('h-[60vh]', mapaExpandido);
+            document.getElementById('mapa-container').classList.toggle('h-56', !mapaExpandido);
+            document.getElementById('mapa-container').classList.toggle('h-[65vh]', mapaExpandido);
             document.getElementById('icon-expand').className = mapaExpandido ? "fa-solid fa-compress" : "fa-solid fa-expand";
             setTimeout(() => miMapa.invalidateSize(), 500);
         }
+
         function geolocalizar() {
-            if (navigator.geolocation) {
-                mostrarToast("Buscando...");
-                navigator.geolocation.getCurrentPosition(pos => { usuarioLat = pos.coords.latitude; usuarioLng = pos.coords.longitude; actualizarCentroMapa(); }, e => mostrarToast("Error GPS", "error"));
+            if (!navigator.geolocation) {
+                return mostrarToast("Tu navegador no soporta geolocalización", "error");
+            }
+            mostrarToast("Detectando tu ubicación con precisión...");
+            
+            const opcionesAltaPrecision = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            const exito = (pos) => {
+                usuarioLat = pos.coords.latitude;
+                usuarioLng = pos.coords.longitude;
+                
+                // Si el dispositivo está fuera del área metropolitana de Victoria (> 35 km)
+                const distVictoria = calcularDistanciaKmClient(usuarioLat, usuarioLng, 23.7369, -99.1411);
+                if (distVictoria > 35) {
+                    mostrarToast("GPS fuera de Cd. Victoria (" + Math.round(distVictoria) + " km). Centrando en Zona Centro.", "error");
+                    usuarioLat = 23.7369;
+                    usuarioLng = -99.1411;
+                } else {
+                    mostrarToast("Ubicación detectada con éxito", "success");
+                }
+                actualizarCentroMapa(true);
+                resolverNombreUbicacion(usuarioLat, usuarioLng);
+            };
+
+            const fallo = (err) => {
+                console.warn("Fallo GPS alta precisión, intentando aproximada:", err.message);
+                navigator.geolocation.getCurrentPosition(
+                    exito,
+                    (err2) => {
+                        let msg = "No se pudo obtener el GPS. Haz clic en el mapa o busca tu colonia.";
+                        if (err.code === 1) msg = "Permiso GPS denegado. Haz clic en el mapa para marcar tu punto.";
+                        mostrarToast(msg, "error");
+                    },
+                    { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+                );
+            };
+
+            navigator.geolocation.getCurrentPosition(exito, fallo, opcionesAltaPrecision);
+        }
+
+        const puntosVictoria = [
+            { nombre: "Zona Centro (17 Hidalgo)", lat: 23.7369, lng: -99.1411, alias: ['centro', 'hidalgo', '17', 'plaza'] },
+            { nombre: "Calle 8 (Blvd. Tamaulipas)", lat: 23.7545, lng: -99.1485, alias: ['calle 8', 'ocho', 'tamaulipas', 'lopez mateos'] },
+            { nombre: "Fracc. Campestre", lat: 23.7725, lng: -99.1540, alias: ['campestre', 'club', 'pinos'] },
+            { nombre: "ULSA / La Salle Norte", lat: 23.7875, lng: -99.1570, alias: ['la salle', 'ulsa', 'norte'] },
+            { nombre: "Fracc. Los Arcos", lat: 23.7760, lng: -99.1430, alias: ['los arcos', 'arcos'] },
+            { nombre: "Tamatán / Calzada Luis Caballero", lat: 23.7188, lng: -99.1715, alias: ['tamatán', 'tamatan', 'calzada', 'caballero', 'zoologico'] },
+            { nombre: "Col. San Marcos", lat: 23.7020, lng: -99.1765, alias: ['san marcos', 'marcos'] },
+            { nombre: "Fracc. Las Flores", lat: 23.7418, lng: -99.1225, alias: ['las flores', 'flores'] },
+            { nombre: "Fracc. Fovissste", lat: 23.7475, lng: -99.1265, alias: ['fovissste', 'foviste'] },
+            { nombre: "Parque Bicentenario / Polyforum", lat: 23.7625, lng: -99.1125, alias: ['bicentenario', 'polyforum', 'recinto'] },
+            { nombre: "Zona Hospitales (HRAE)", lat: 23.7678, lng: -99.1085, alias: ['hospital', 'hospitales', 'hrae', 'infantil'] },
+            { nombre: "Campus Universitario UAT", lat: 23.7225, lng: -99.1525, alias: ['uat', 'universidad', 'estudiante'] },
+            { nombre: "Col. San Luisito", lat: 23.7442, lng: -99.1585, alias: ['san luisito', 'luisito'] },
+            { nombre: "Col. Pedro J. Méndez", lat: 23.7485, lng: -99.1705, alias: ['pedro j mendez', 'pedro j méndez', 'mendez'] },
+            { nombre: "Col. Libertad", lat: 23.7645, lng: -99.1715, alias: ['libertad'] },
+            { nombre: "Col. Moderna", lat: 23.7495, lng: -99.1625, alias: ['moderna'] },
+            { nombre: "Col. Azteca", lat: 23.7142, lng: -99.1175, alias: ['azteca'] },
+            { nombre: "Col. Satélite", lat: 23.7082, lng: -99.1125, alias: ['satelite', 'satélite'] },
+            { nombre: "Col. Horacio Terán", lat: 23.7215, lng: -99.1245, alias: ['horacio teran', 'horacio terán', 'teran'] },
+            { nombre: "Fracc. El Palmar", lat: 23.7025, lng: -99.1220, alias: ['palmar'] },
+            { nombre: "Estadio Marte R. Gómez", lat: 23.7428, lng: -99.1355, alias: ['estadio', 'marte r gomez', 'ruiz cortines'] },
+            { nombre: "La Presita", lat: 23.6890, lng: -99.1810, alias: ['presita', 'la presita'] },
+            { nombre: "Libramiento Poniente Teocaltiche", lat: 23.7515, lng: -99.1835, alias: ['teocaltiche', 'poniente'] }
+        ];
+
+        function irAZona(lat, lng, nombre) {
+            usuarioLat = lat;
+            usuarioLng = lng;
+            const input = document.getElementById('input-ubicacion');
+            if (input) input.value = nombre + ', Cd. Victoria';
+            actualizarCentroMapa(true);
+            mostrarToast("Explorando drops en " + nombre, "success");
+        }
+
+        function resolverNombreUbicacion(lat, lng) {
+            const input = document.getElementById('input-ubicacion');
+            let masCercano = null;
+            let minDist = 999;
+            for (const p of puntosVictoria) {
+                const d = calcularDistanciaKmClient(lat, lng, p.lat, p.lng);
+                if (d < minDist) { minDist = d; masCercano = p; }
+            }
+            if (input) {
+                if (masCercano && minDist <= 1.2) {
+                    input.value = `${masCercano.nombre}, Cd. Victoria`;
+                } else {
+                    input.value = `📍 Cd. Victoria (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+                }
             }
         }
+
         async function buscarUbicacion() {
-            const dir = document.getElementById('input-ubicacion').value;
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(dir + ' Ciudad Victoria')}`);
-            const data = await res.json();
-            if(data.length > 0) { usuarioLat = data[0].lat; usuarioLng = data[0].lon; actualizarCentroMapa(); }
+            const input = document.getElementById('input-ubicacion');
+            const dir = input ? input.value.trim().toLowerCase() : '';
+            if (!dir) return mostrarToast("Ingresa una colonia o calle", "error");
+
+            // Buscar en referencias directas de Cd. Victoria
+            for (const pt of puntosVictoria) {
+                if (pt.nombre.toLowerCase().includes(dir) || pt.alias.some(a => dir.includes(a))) {
+                    usuarioLat = pt.lat;
+                    usuarioLng = pt.lng;
+                    if (input) input.value = pt.nombre + ', Cd. Victoria';
+                    actualizarCentroMapa(true);
+                    mostrarToast("Ubicado en " + pt.nombre, "success");
+                    return;
+                }
+            }
+
+            try {
+                mostrarToast("Buscando en mapa...");
+                const query = encodeURIComponent(`${dir}, Ciudad Victoria, Tamaulipas, Mexico`);
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    usuarioLat = parseFloat(data[0].lat);
+                    usuarioLng = parseFloat(data[0].lon);
+                    actualizarCentroMapa(true);
+                    mostrarToast("Ubicación encontrada", "success");
+                    resolverNombreUbicacion(usuarioLat, usuarioLng);
+                } else {
+                    mostrarToast("No encontramos esa dirección. Haz clic en el mapa.", "error");
+                }
+            } catch (e) {
+                mostrarToast("Error de conexión al buscar dirección", "error");
+            }
         }
-        function actualizarCentroMapa() { if(miMapa) { miMapa.setView([usuarioLat, usuarioLng], 14); circuloRango.setLatLng([usuarioLat, usuarioLng]); cargarFeed(); } }
+
+        function actualizarCentroMapa(moverCamara = true) { 
+            if(miMapa) { 
+                if (moverCamara) miMapa.panTo([usuarioLat, usuarioLng], { animate: true, duration: 0.5 }); 
+                if (circuloRango) circuloRango.setLatLng([usuarioLat, usuarioLng]); 
+                if (marcadorUsuario) marcadorUsuario.setLatLng([usuarioLat, usuarioLng]);
+                cargarFeed(); 
+            } 
+        }
 
         function cambiarTransporte(tipo) {
             transporteActivo = tipo;
@@ -645,10 +1084,43 @@
         }
 
         function initMapaReal() {
+            if (miMapa) return;
             miMapa = L.map('mapa', {zoomControl: false}).setView([usuarioLat, usuarioLng], 14);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}').addTo(miMapa);
-            circuloRango = L.circle([usuarioLat, usuarioLng], { radius: 1500, color: '#00e676', fillColor: '#00e676', fillOpacity: 0.1 }).addTo(miMapa);
-            L.marker([usuarioLat, usuarioLng], {icon: L.divIcon({className:'text-2xl text-blue-500 drop-shadow-md', html: '<i class="fa-solid fa-location-dot"></i>'})}).addTo(miMapa);
+            
+            // MAPA DE GOOGLE MAPS (BLANQUITO Y NÍTIDO)
+            L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                attribution: '&copy; Google Maps'
+            }).addTo(miMapa);
+
+            circuloRango = L.circle([usuarioLat, usuarioLng], { radius: 1500, color: '#00e676', fillColor: '#00e676', fillOpacity: 0.12, weight: 2 }).addTo(miMapa);
+            
+            const userIcon = L.divIcon({
+                className: 'user-pin-marker',
+                html: '<div class="relative flex items-center justify-center cursor-grab active:cursor-grabbing"><span class="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-emerald-400 opacity-60"></span><div class="relative w-8 h-8 rounded-full bg-[#00e676] border-2 border-white shadow-xl flex items-center justify-center text-[#004e36] text-sm font-black"><i class="fa-solid fa-location-dot"></i></div></div>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            
+            marcadorUsuario = L.marker([usuarioLat, usuarioLng], { draggable: true, icon: userIcon }).addTo(miMapa);
+            marcadorUsuario.bindTooltip("📍 Arrástrame para mover tu ubicación", { permanent: false, direction: 'top' });
+
+            marcadorUsuario.on('dragend', (e) => {
+                const pos = e.target.getLatLng();
+                usuarioLat = pos.lat;
+                usuarioLng = pos.lng;
+                actualizarCentroMapa(false);
+                resolverNombreUbicacion(usuarioLat, usuarioLng);
+            });
+
+            miMapa.on('click', (e) => {
+                usuarioLat = e.latlng.lat;
+                usuarioLng = e.latlng.lng;
+                actualizarCentroMapa(true);
+                resolverNombreUbicacion(usuarioLat, usuarioLng);
+            });
+
             aplicarTemaGuardado(); 
         }
 
@@ -661,21 +1133,66 @@
             const data = await res.json();
             
             marcadores.forEach(m => miMapa.removeLayer(m)); marcadores = [];
-            data.restaurantes.forEach(r => {
-                const icon = L.divIcon({className: 'bg-[var(--panel-bg)] rounded-full flex items-center justify-center shadow-lg text-[#00e676] font-black border-2 border-[#00e676]', html: '<i class="fa-solid fa-store"></i>', iconSize: [36, 36]});
+            
+            const catIcons = {
+                'Pizzería': 'fa-pizza-slice',
+                'Rápida': 'fa-burger',
+                'Saludable': 'fa-leaf',
+                'Fondita': 'fa-utensils',
+                'Tacos': 'fa-bowl-rice',
+                'Cafetería': 'fa-mug-hot',
+                'Mariscos': 'fa-fish'
+            };
+
+            (data.restaurantes || []).forEach(r => {
+                const iconName = catIcons[r.categoria] || 'fa-store';
+                const icon = L.divIcon({
+                    className: 'marker-rest-pin',
+                    html: `<div class="bg-white text-zinc-900 rounded-full w-9 h-9 flex items-center justify-center shadow-lg border-2 border-[#00e676] text-sm hover:scale-110 transition-transform cursor-pointer" title="${esc(r.nombre)}"><i class="fa-solid ${iconName} text-[#00e676]"></i></div>`,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                });
                 const m = L.marker([r.lat, r.lng], {icon}).addTo(miMapa);
-                marcadores.push(m); m.bindPopup(`<div class="text-center font-bold">${r.nombre}</div>`);
+                marcadores.push(m);
+                const distTxt = r.distancia !== undefined ? (r.distancia < 1 ? `${Math.round(r.distancia * 1000)} m` : `${r.distancia} km`) : '';
+                m.bindPopup(`
+                    <div class="text-center font-sans p-1 min-w-[170px]">
+                        <div class="font-extrabold text-sm text-zinc-900 mb-0.5">${esc(r.nombre)}</div>
+                        <div class="text-[11px] text-zinc-600 mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-tag text-[#00e676]"></i> ${esc(r.categoria || 'Restaurante')}</div>
+                        ${r.direccion ? `<div class="text-[10px] text-zinc-500 mb-1 leading-tight">${esc(r.direccion)}</div>` : ''}
+                        ${distTxt ? `<div class="inline-block bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full mt-1">📍 A ${distTxt}</div>` : ''}
+                        <button onclick="abrirMenuRestaurante(${r.id})" class="mt-2.5 w-full bg-[#00e676] hover:bg-[#00c853] text-[#004e36] text-[11px] font-black py-1.5 px-3 rounded-full flex items-center justify-center gap-1.5 shadow transition cursor-pointer active:scale-95">
+                            <i class="fa-solid fa-utensils"></i> Ver Menú y Pedir
+                        </button>
+                    </div>
+                `);
             });
 
             const ui = document.getElementById('ui-platillos');
-            if(data.platillos.length === 0) { ui.innerHTML = `<div class="col-span-2 md:col-span-4 text-center py-10 opacity-50 font-bold">No hay drops activos cerca. Prueba con otro medio de transporte para ampliar tu radio.</div>`; return; }
+            if(!data.platillos || data.platillos.length === 0) { 
+                ui.innerHTML = `<div class="col-span-2 md:col-span-4 text-center py-10 opacity-50 font-bold">No hay drops con este filtro cerca. Prueba cambiando el medio de transporte o categoría.</div>`; 
+                return; 
+            }
             
             ui.innerHTML = data.platillos.map(p => `
-                <div class="glass-panel overflow-hidden cursor-pointer hover:border-[#00e676] transition flex flex-col" onclick="abrirDetalle(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', '${p.descripcion.replace(/'/g, "\\'")}', '${p.imagen_url}', ${p.disponibles}, '${p.rest_nombre.replace(/'/g, "\\'")}', ${p.id_restaurante})">
-                    <img src="${p.imagen_url}" class="w-full h-32 object-cover">
-                    <div class="p-4 flex-grow flex flex-col justify-between">
-                        <div><h3 class="font-extrabold leading-tight text-sm">${p.nombre}</h3><p class="text-[10px] opacity-70 font-bold my-1"><i class="fa-solid fa-store"></i> ${p.rest_nombre}</p></div>
-                        <div class="flex justify-between items-center mt-2 border-t border-[var(--border-color)] pt-2"><span class="text-[#00e676] font-black text-xs uppercase">Atrapar</span><div class="bg-[var(--input-bg)] w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]">${p.disponibles}</div></div>
+                <div class="glass-panel overflow-hidden cursor-pointer hover:border-[#00e676] transition flex flex-col group" onclick="abrirDetalle(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', '${p.descripcion.replace(/'/g, "\\'")}', '${p.imagen_url}', ${p.disponibles}, '${p.rest_nombre.replace(/'/g, "\\'")}', ${p.id_restaurante})">
+                    <div class="relative w-full h-32 overflow-hidden">
+                        <img src="${p.imagen_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        ${p.distancia !== undefined ? `<div class="absolute top-2 left-2 bg-black/75 backdrop-blur text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow"><i class="fa-solid fa-location-dot text-[#00e676]"></i> ${p.distancia < 1 ? Math.round(p.distancia * 1000) + ' m' : p.distancia + ' km'}</div>` : ''}
+                        <div class="absolute bottom-2 right-2 bg-black/75 backdrop-blur text-white text-[10px] font-black px-2 py-0.5 rounded-full">$${p.precio_original || 99}</div>
+                    </div>
+                    <div class="p-3 flex-grow flex flex-col justify-between">
+                        <div>
+                            <h3 class="font-extrabold leading-tight text-sm">${p.nombre}</h3>
+                            <p class="text-[10px] opacity-70 font-bold my-1 flex items-center gap-1 truncate hover:text-[#00e676] transition cursor-pointer" onclick="event.stopPropagation(); abrirMenuRestaurante(${p.id_restaurante})"><i class="fa-solid fa-store text-[#00e676]"></i> ${p.rest_nombre} <span class="underline text-[9px] opacity-70 ml-1">(ver menú)</span></p>
+                            ${p.rest_direccion ? `<p class="text-[9px] opacity-50 truncate"><i class="fa-solid fa-map-pin"></i> ${p.rest_direccion}</p>` : ''}
+                        </div>
+                        <div class="flex justify-between items-center mt-2 border-t border-[var(--border-color)] pt-2">
+                            <span class="text-[#00e676] font-black text-xs uppercase flex items-center gap-1"><i class="fa-solid fa-bolt"></i> Atrapar</span>
+                            <div class="bg-[var(--input-bg)] px-2 py-0.5 rounded-full flex items-center gap-1 font-bold text-[10px] border border-[var(--border-color)]">
+                                <span class="text-xs text-[#00e676] font-black">${p.disponibles}</span> disp
+                            </div>
+                        </div>
                     </div>
                 </div>
             `).join('');
@@ -690,17 +1207,126 @@
             document.getElementById('btn-confirmar-pedido').onclick = () => pedirPlatillo(id, idRest, rest);
         }
 
-        async function pedirPlatillo(idPlatillo, idRestaurante, restNombre) {
-            const res = await fetch('http://localhost:3000/api/pedidos', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_cliente: usuarioActivo.id, id_restaurante: idRestaurante, id_platillo: idPlatillo, cantidad: cantidadSel})});
-            const data = await res.json();
-            cerrarDetalle();
-            if(data.error) return mostrarToast(data.error, "error");
+        // --- VER MENÚ COMPLETO DEL RESTAURANTE Y PEDIR DIRECTO ---
+        window.abrirMenuRestaurante = async function(idRestaurante) {
+            if (!idRestaurante) return;
+            toggleModal('modal-menu-restaurante');
+            const container = document.getElementById('menu-restaurante-items');
+            container.innerHTML = '<div class="col-span-1 md:col-span-2 text-center py-12 opacity-70 font-bold"><i class="fa-solid fa-spinner fa-spin text-3xl text-[#00e676] mb-3"></i><br>Cargando menú y drops activos...</div>';
 
-            pedidoActualId = data.id_pedido; restauranteAcalificar = idRestaurante;
-            document.getElementById('trk-restaurante').innerText = restNombre; document.getElementById('trk-codigo').innerText = data.codigo;
-            document.getElementById('widget-tracker').classList.remove('hidden');
-            avanzarTracker(1); mostrarToast("¡Drop atrapado!"); iniciarTracker(data.segundos); cargarFeed();
+            try {
+                const res = await fetch(`${API}/api/restaurantes/${idRestaurante}/menu?t=${Date.now()}`);
+                if (!res.ok) throw new Error("No se pudo cargar");
+                const data = await res.json();
+                const r = data.restaurante;
+                const platillos = data.platillos || [];
+
+                document.getElementById('menu-rest-nombre').innerText = r.nombre;
+                document.getElementById('menu-rest-cat').innerText = r.categoria || 'Restaurante';
+                document.getElementById('menu-rest-dir').innerText = r.direccion || 'Ciudad Victoria, Tamps.';
+                document.getElementById('menu-rest-rating').innerHTML = `★ ${r.estrellas} <span class="opacity-60 text-xs">(${r.puntaje || 0} pts)</span>`;
+
+                if (platillos.length === 0) {
+                    container.innerHTML = '<div class="col-span-1 md:col-span-2 text-center py-8 opacity-60 font-semibold">Este restaurante aún no tiene platillos publicados para hoy.</div>';
+                    return;
+                }
+
+                container.innerHTML = platillos.map(p => `
+                    <div class="glass-panel p-3 rounded-2xl flex gap-3 items-center border border-[var(--border-color)] hover:border-[#00e676] transition shadow-sm">
+                        <img src="${p.imagen_url}" class="w-20 h-20 rounded-xl object-cover shrink-0">
+                        <div class="flex-grow min-w-0">
+                            <div class="flex justify-between items-start gap-1">
+                                <h4 class="font-extrabold text-sm leading-tight truncate">${esc(p.nombre)}</h4>
+                                <span class="font-black text-xs text-[#00e676] shrink-0">$${p.precio_original || 99}</span>
+                            </div>
+                            <p class="text-[11px] opacity-70 line-clamp-2 mt-0.5 leading-snug">${esc(p.descripcion || '')}</p>
+                            <div class="flex justify-between items-center mt-2 pt-1.5 border-t border-[var(--border-color)]">
+                                ${p.disponibles > 0 
+                                    ? `<span class="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full"><i class="fa-solid fa-bolt mr-0.5"></i> ${p.disponibles} disp</span>`
+                                    : `<span class="text-[10px] font-bold opacity-40 bg-gray-500/10 px-2 py-0.5 rounded-full">Agotado</span>`
+                                }
+                                ${p.disponibles > 0 
+                                    ? `<button onclick="toggleModal('modal-menu-restaurante'); abrirDetalle(${p.id}, '${p.nombre.replace(/'/g, "\\'")}', '${p.descripcion.replace(/'/g, "\\'")}', '${p.imagen_url}', ${p.disponibles}, '${r.nombre.replace(/'/g, "\\'")}', ${r.id});" class="btn-sg text-[11px] font-black px-3 py-1 shadow flex items-center gap-1 hover:scale-105 transition"><i class="fa-solid fa-bag-shopping"></i> Pedir Drop</button>`
+                                    : `<button disabled class="bg-gray-500/20 text-xs px-3 py-1 rounded-full font-bold opacity-50 cursor-not-allowed">Agotado</button>`
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<div class="col-span-1 md:col-span-2 text-center py-8 text-red-500 font-bold">Error al cargar el menú del restaurante.</div>';
+            }
+        };
+
+        async function pedirPlatillo(idPlatillo, idRestaurante, restNombre) {
+            const btn = document.getElementById('btn-confirmar-pedido');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Asegurando Drop...'; }
+            try {
+                const res = await fetch('http://localhost:3000/api/pedidos', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_cliente: usuarioActivo.id, id_restaurante: idRestaurante, id_platillo: idPlatillo, cantidad: cantidadSel})});
+                const data = await res.json();
+                cerrarDetalle();
+                if(data.error) return mostrarToast(data.error, "error");
+
+                pedidoActualId = data.id_pedido; restauranteAcalificar = idRestaurante;
+                document.getElementById('trk-restaurante').innerText = restNombre; document.getElementById('trk-codigo').innerText = data.codigo;
+                document.getElementById('widget-tracker').classList.remove('hidden');
+                avanzarTracker(1); mostrarToast("¡Drop atrapado!"); iniciarTracker(data.segundos); cargarFeed();
+            } catch(e) {
+                mostrarToast("Error de conexión al procesar pedido", "error");
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-bag-shopping"></i> Atrapar Drop'; }
+            }
         }
+
+        // --- CANCELACIÓN DE PEDIDOS POR EL CLIENTE ---
+        window.abrirModalCancelarPedido = function() {
+            if (!pedidoActualId) return mostrarToast("No tienes un pedido activo que cancelar", "error");
+            document.getElementById('input-detalle-cancelacion').value = '';
+            toggleModal('modal-cancelar-pedido');
+        };
+
+        window.confirmarCancelacionCliente = async function() {
+            if (!pedidoActualId) return;
+            const radios = document.getElementsByName('motivo_cancelacion_cliente');
+            let motivo = "No puedo llegar a tiempo al local";
+            for (const r of radios) {
+                if (r.checked) {
+                    motivo = r.value;
+                    break;
+                }
+            }
+            const detalle = document.getElementById('input-detalle-cancelacion').value.trim();
+            const btn = document.getElementById('btn-confirmar-cancel-cliente');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Cancelando...'; }
+
+            try {
+                const res = await fetch(`${API}/api/pedidos/cancelar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id_pedido: pedidoActualId,
+                        motivo,
+                        detalle
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    mostrarToast(data.error || "No se pudo cancelar el pedido", "error");
+                } else {
+                    mostrarToast("Pedido cancelado a tiempo. Sin strikes.");
+                    pedidoActualId = null;
+                    if (temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                    document.getElementById('widget-tracker').classList.add('hidden');
+                    toggleModal('modal-cancelar-pedido');
+                    refrescarPerfil();
+                    cargarFeed();
+                }
+            } catch (e) {
+                mostrarToast("Error de conexión al cancelar el pedido", "error");
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Confirmar Cancelación'; }
+            }
+        };
 
         function avanzarTracker(paso) {
             for(let i=1; i<=4; i++) { 
@@ -751,7 +1377,18 @@
             }, 1000);
         }
 
-        async function solicitarEntrega() { await fetch('http://localhost:3000/api/pedidos/solicitar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido: pedidoActualId})}); avanzarTracker(2); }
+        async function solicitarEntrega() { 
+            const btn = document.getElementById('btn-trk-accion');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Notificando...'; }
+            try {
+                await fetch('http://localhost:3000/api/pedidos/solicitar', {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido: pedidoActualId})}); 
+                avanzarTracker(2);
+            } catch(e) {
+                mostrarToast("Error de conexión al notificar al restaurante", "error");
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-location-arrow"></i> Llegué al Local'; }
+            }
+        }
 
         async function checkEstadoPedidoCliente() {
             if(!pedidoActualId) return;
@@ -774,15 +1411,22 @@
                     if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
                     document.getElementById('widget-tracker').classList.add('hidden');
                     mostrarToast("Tu pedido expiró (+1 strike)", "error"); cargarFeed(); refrescarPerfil();
-                } else if (data.solicitud_entrega === 'rechazada' || data.estado === 'cancelado') {
+                } else if (data.solicitud_entrega === 'rechazada' || data.estado === 'cancelado' || data.estado === 'cancelado_restaurante') {
                     pedidoActualId = null;
-                    document.getElementById('lbl-estado-entrega').innerText = "El restaurante canceló la entrega.";
+                    const razon = data.motivo_cancelacion ? ` Motivo: "${data.motivo_cancelacion}"` : '';
+                    document.getElementById('lbl-estado-entrega').innerText = `El restaurante canceló el pedido.${razon}`;
                     document.getElementById('lbl-estado-entrega').classList.replace('text-orange-500', 'text-red-500');
                     if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                    mostrarToast("El restaurante canceló tu drop (sin penalización)" + (data.motivo_cancelacion ? `: ${data.motivo_cancelacion}` : ''), "error");
                     setTimeout(() => { 
                         document.getElementById('widget-tracker').classList.add('hidden'); 
                         cargarFeed(); 
-                    }, 4000);
+                    }, 4500);
+                } else if (data.estado === 'cancelado_cliente') {
+                    pedidoActualId = null;
+                    if(temporizadorInterval) { clearInterval(temporizadorInterval); temporizadorInterval = null; }
+                    document.getElementById('widget-tracker').classList.add('hidden');
+                    cargarFeed();
                 }
             } catch (e) {
                 console.error("Error validando el pedido");
@@ -915,10 +1559,71 @@
             
             const vips = data.filter(p => p.is_premium), norms = data.filter(p => !p.is_premium);
             
-            divVip.innerHTML = vips.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : vips.map(p => `<div class="bg-amber-500/10 border border-amber-500/50 p-3 rounded-xl flex justify-between items-center mb-2"><div><div class="font-extrabold text-amber-500"><i class="fa-solid fa-crown mr-1"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div><div class="text-xs mt-1">Cód: <span class="bg-amber-500 text-black px-1 rounded font-mono">${p.codigo_unico}</span></div><div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div></div><div class="flex gap-2"><button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow hover:scale-105 transition">Entregar</button></div></div>`).join('');
+            divVip.innerHTML = vips.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : vips.map(p => `
+                <div class="bg-amber-500/10 border border-amber-500/50 p-3 rounded-xl flex justify-between items-center mb-2">
+                    <div>
+                        <div class="font-extrabold text-amber-500"><i class="fa-solid fa-crown mr-1"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div>
+                        <div class="text-xs mt-1">Cód: <span class="bg-amber-500 text-black px-1 rounded font-mono">${p.codigo_unico}</span></div>
+                        <div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-1">
+                        <button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow hover:scale-105 transition">Entregar</button>
+                        <button onclick="abrirModalCancelarRestaurante(${p.id}, '${esc(p.nombre)}', '${esc(p.platillo)}')" class="bg-red-500/20 text-red-500 px-3 py-1 rounded-full text-[10px] font-bold border border-red-500/50 hover:bg-red-500 hover:text-white transition">Cancelar</button>
+                    </div>
+                </div>
+            `).join('');
             
-            divNorm.innerHTML = norms.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : norms.map(p => `<div class="glass-input p-3 flex justify-between items-center mb-2"><div><div class="font-bold"><i class="fa-solid fa-user-circle mr-1 opacity-50"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div><div class="text-xs mt-1">Cód: <span class="bg-[#00e676]/20 text-[#00e676] px-1 rounded font-mono border border-[#00e676]">${p.codigo_unico}</span></div><div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div></div><div class="flex flex-col gap-1"><button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-[#00e676] text-[#004e36] px-3 py-1 rounded-full text-[10px] font-bold shadow hover:scale-105 transition">Entregar</button><button onclick="responderEntrega(${p.id}, 'rechazada', ${p.id_cliente})" class="bg-red-500/20 text-red-500 px-3 py-1 rounded-full text-[10px] font-bold border border-red-500/50 hover:bg-red-500 hover:text-white transition">Cancelar</button></div></div>`).join('');
+            divNorm.innerHTML = norms.length === 0 ? '<div class="text-xs opacity-50 italic">Nadie en fila.</div>' : norms.map(p => `
+                <div class="glass-input p-3 flex justify-between items-center mb-2">
+                    <div>
+                        <div class="font-bold"><i class="fa-solid fa-user-circle mr-1 opacity-50"></i> ${esc(p.nombre)} <span class="text-amber-500 text-xs font-bold">★ ${p.estrellas}</span></div>
+                        <div class="text-xs mt-1">Cód: <span class="bg-[#00e676]/20 text-[#00e676] px-1 rounded font-mono border border-[#00e676]">${p.codigo_unico}</span></div>
+                        <div class="text-xs opacity-70 mt-1">${esc(p.platillo)} ×${p.cantidad || 1}</div>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <button onclick="responderEntrega(${p.id}, 'aceptada', ${p.id_cliente})" class="bg-[#00e676] text-[#004e36] px-3 py-1 rounded-full text-[10px] font-bold shadow hover:scale-105 transition">Entregar</button>
+                        <button onclick="abrirModalCancelarRestaurante(${p.id}, '${esc(p.nombre)}', '${esc(p.platillo)}')" class="bg-red-500/20 text-red-500 px-3 py-1 rounded-full text-[10px] font-bold border border-red-500/50 hover:bg-red-500 hover:text-white transition">Cancelar</button>
+                    </div>
+                </div>
+            `).join('');
         }
+
+        window.abrirModalCancelarRestaurante = function(id_pedido, nombreCliente, nombrePlatillo) {
+            window._pedidoCancelarRestId = id_pedido;
+            document.getElementById('lbl-cancelar-rest-info').innerText = `Pedido de ${nombreCliente} (${nombrePlatillo})`;
+            document.getElementById('motivo-cancelar-rest').value = '';
+            toggleModal('modal-cancelar-restaurante');
+        };
+
+        window.confirmarCancelacionRestaurante = async function() {
+            const id_pedido = window._pedidoCancelarRestId;
+            const motivo = document.getElementById('motivo-cancelar-rest').value.trim();
+            if (!motivo || motivo.length < 4) {
+                return mostrarToast("Debes escribir el motivo de la cancelación (mínimo 4 caracteres)", "error");
+            }
+            const btn = document.getElementById('btn-confirmar-cancel-rest');
+            if (btn) { btn.disabled = true; btn.innerText = "Cancelando..."; }
+            try {
+                const rr = await fetch(`${API}/api/pedidos/cancelar-restaurante`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_pedido, motivo })
+                });
+                const dd = await rr.json().catch(() => ({}));
+                if (!rr.ok) {
+                    mostrarToast(dd.error || "No se pudo cancelar el pedido", "error");
+                } else {
+                    mostrarToast("Pedido cancelado. El cliente fue notificado sin strikes.");
+                    toggleModal('modal-cancelar-restaurante');
+                    cargarEntregasRestaurante();
+                }
+            } catch (e) {
+                mostrarToast("Error de conexión", "error");
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerText = "Cancelar Pedido"; }
+            }
+        };
+
         window.responderEntrega = async function(id_pedido, accion, id_cliente) {
             const ped = (window._entregas || []).find(x => x.id === id_pedido);
             const rr = await fetch(`${API}/api/pedidos/responder`, {method: 'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id_pedido, accion})});

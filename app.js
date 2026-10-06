@@ -27,6 +27,10 @@ function toggleFormularios() {
 
 async function procesarRegistro(e) {
     e.preventDefault();
+    const chk = document.getElementById('reg-terminos');
+    if (chk && !chk.checked) {
+        return mostrarToast("Debes aceptar los Términos y Condiciones para continuar.", "error");
+    }
     const nombre = document.getElementById('reg-nombre').value;
     const correo = document.getElementById('reg-email').value;
     const password = document.getElementById('reg-password').value;
@@ -106,8 +110,10 @@ function inicializarMapa() {
     if (miMapa) return;
     miMapa = L.map('mapa', { zoomControl: false }).setView([23.7369, -99.1411], 14);
     L.control.zoom({ position: 'bottomright' }).addTo(miMapa);
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri'
+    L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
     }).addTo(miMapa);
     dibujarMarcadores();
 }

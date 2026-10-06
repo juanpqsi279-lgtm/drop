@@ -8,9 +8,10 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || true }));
 app.use(express.json({ limit: '100kb' }));
+app.use(express.static(__dirname));
 
 // --- SEGURIDAD: JWT + control de acceso por rol ---
 let JWT_SECRET = process.env.JWT_SECRET;
@@ -23,13 +24,30 @@ const soloRol = (...roles) => (req, res, next) => roles.includes(req.user.rol) ?
 const soloYo = (req, res, next) => (String(req.params.id || req.params.id_cliente) === String(req.user.id) || req.user.rol === 'admin') ? next() : res.status(403).json({ error: 'No autorizado' });
 const miRest = (req, res, next) => String(req.params.id_rest || req.params.id) === String(req.user.id_restaurante) ? next() : res.status(403).json({ error: 'No autorizado' });
 
-app.use(['/api/login', '/api/registro'], rateLimit({ windowMs: 15 * 60 * 1000, limit: parseInt(process.env.LIMITE_AUTH) || 30, standardHeaders: true, legacyHeaders: false, message: { error: 'Demasiados intentos. Espera unos minutos.' } }));
+process.on('uncaughtException', (err) => {
+    console.error('🛡️ [Auto-Shield] Excepción no capturada interceptada:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('🛡️ [Auto-Shield] Rechazo no manejado interceptado:', reason);
+});
+
+app.use(['/api/login', '/api/registro'], rateLimit({ windowMs: 15 * 60 * 1000, limit: parseInt(process.env.LIMITE_AUTH) || 40, standardHeaders: true, legacyHeaders: false, message: { error: 'Demasiados intentos. Espera unos minutos.' } }));
 app.use('/api', (req, res, next) => ['/login', '/registro'].includes(req.path) ? next() : auth(req, res, next));
 app.use('/api/admin', soloRol('admin'));
-app.use(['/api/restaurante', '/api/publicar', '/api/stats/restaurante', '/api/pedidos/restaurante', '/api/pedidos/responder'], soloRol('restaurante'));
-app.use(['/api/pedidos/solicitar', '/api/strikes'], soloRol('cliente'));
+app.use(['/api/restaurante', '/api/publicar', '/api/stats/restaurante', '/api/pedidos/restaurante', '/api/pedidos/responder', '/api/pedidos/cancelar-restaurante'], soloRol('restaurante'));
+app.use(['/api/pedidos/solicitar', '/api/pedidos/cancelar', '/api/strikes'], soloRol('cliente'));
 
-const pool = mysql.createPool({ host: process.env.DB_HOST || 'localhost', user: process.env.DB_USER || 'root', password: process.env.DB_PASSWORD ?? '', database: process.env.DB_NAME || 'rescate_comida' });
+const pool = mysql.createPool({
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD ?? '',
+    database: process.env.DB_NAME || 'rescate_comida',
+    waitForConnections: true,
+    connectionLimit: 40,
+    queueLimit: 250,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000
+});
 const MINUTOS_RECLAMO = parseInt(process.env.MINUTOS_RECLAMO) || 30; // tiempo límite configurable
 const MAX_POR_PEDIDO = parseInt(process.env.MAX_POR_PEDIDO) || 3;
 
@@ -41,6 +59,7 @@ async function autoRepararDB() {
         "ALTER TABLE pedidos ADD COLUMN id_platillo INT",
         "ALTER TABLE pedidos ADD COLUMN estado VARCHAR(50) DEFAULT 'activo'",
         "ALTER TABLE pedidos ADD COLUMN solicitud_entrega VARCHAR(50) DEFAULT 'ninguna'",
+        "ALTER TABLE pedidos ADD COLUMN motivo_cancelacion VARCHAR(255) NULL",
         "ALTER TABLE usuarios ADD COLUMN is_premium BOOLEAN DEFAULT FALSE",
         "ALTER TABLE usuarios ADD COLUMN cooldown_premium DATETIME NULL",
         "ALTER TABLE pedidos MODIFY COLUMN estado VARCHAR(50) DEFAULT 'activo'",
@@ -243,71 +262,362 @@ app.get('/api/pedidos/restaurante/:id_rest', miRest, async (req, res) => {
 });
 
 // --- FEED Y BÚSQUEDA ---
+app.get('/api/restaurantes', async (req, res) => {
+    try {
+        const [rests] = await pool.query(`SELECT r.id, r.nombre_comercial as nombre, r.direccion, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE u.estado_verificacion = 'aprobado'`);
+        res.json(rests);
+    } catch(e) {
+        res.status(500).json({ error: "Error al obtener restaurantes" });
+    }
+});
+
+app.get('/api/restaurantes/:id/menu', async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!id || id <= 0) return res.status(400).json({ error: 'ID de restaurante inválido' });
+
+    try {
+        const [rests] = await pool.query(
+            "SELECT r.id, r.nombre_comercial as nombre, r.direccion, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas, u.puntaje FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE r.id = ? AND u.estado_verificacion = 'aprobado'",
+            [id]
+        );
+        if (rests.length === 0) return res.status(404).json({ error: 'Restaurante no encontrado o no disponible' });
+
+        const [platillos] = await pool.query(
+            "SELECT id, nombre, descripcion, categoria_alimento, imagen_url, disponibles, precio_original FROM platillos WHERE id_restaurante = ? ORDER BY disponibles DESC, id ASC",
+            [id]
+        );
+
+        res.json({
+            restaurante: rests[0],
+            platillos: platillos
+        });
+    } catch(e) {
+        console.error('Error al obtener menú del restaurante:', e.message);
+        res.status(500).json({ error: 'Error al consultar menú del restaurante' });
+    }
+});
+
 app.post('/api/feed', async (req, res) => {
     const { latUsuario, lngUsuario, transporte, busqueda, categoria } = req.body;
+    const uLat = parseFloat(latUsuario) || 23.7369;
+    const uLng = parseFloat(lngUsuario) || -99.1411;
+
     let radio = 1.5; 
     if (transporte === 'bici') radio = 4.0;
     if (transporte === 'bus') radio = 7.0;
     if (transporte === 'moto') radio = 10.0;
     if (transporte === 'auto') radio = 15.0;
 
-    const [rests] = await pool.query(`SELECT r.id, r.nombre_comercial as nombre, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE u.estado_verificacion = 'aprobado'`);
-    const cercanos = rests.filter(r => calcularDistanciaKm(latUsuario, lngUsuario, r.lat, r.lng) <= radio);
+    const [rests] = await pool.query(`SELECT r.id, r.nombre_comercial as nombre, r.direccion, r.categoria, r.latitud as lat, r.longitud as lng, u.estrellas FROM restaurantes r JOIN usuarios u ON r.id_usuario = u.id WHERE u.estado_verificacion = 'aprobado'`);
+    
+    // Calcular distancia real a cada restaurante y ordenar de más cercano a más lejano
+    const conDistancia = rests.map(r => ({
+        ...r,
+        distancia: parseFloat(calcularDistanciaKm(uLat, uLng, Number(r.lat), Number(r.lng)).toFixed(2))
+    })).sort((a, b) => a.distancia - b.distancia);
+
+    let cercanos = conDistancia.filter(r => r.distancia <= radio);
+
+    // REQUISITO CRÍTICO: Garantizar que en cualquier punto de Ciudad Victoria haya mínimo 2 restaurantes cerca
+    if (cercanos.length < 2 && conDistancia.length >= 2) {
+        cercanos = conDistancia.slice(0, Math.min(2, conDistancia.length));
+    }
     
     if(cercanos.length === 0) return res.json({ restaurantes: [], platillos: [] });
 
-    let q = `SELECT p.*, r.nombre_comercial as rest_nombre FROM platillos p JOIN restaurantes r ON p.id_restaurante = r.id WHERE p.id_restaurante IN (?) AND p.disponibles > 0`;
-    let params = [cercanos.map(r => r.id)];
+    let restIds = cercanos.map(r => r.id);
+    let q = `SELECT p.*, r.nombre_comercial as rest_nombre, r.direccion as rest_direccion, r.latitud as rest_lat, r.longitud as rest_lng FROM platillos p JOIN restaurantes r ON p.id_restaurante = r.id WHERE p.disponibles > 0`;
+    let params = [];
 
-    if (categoria) { q += ` AND r.categoria = ?`; params.push(categoria); }
-    if (busqueda) { q += ` AND (p.nombre LIKE ? OR p.categoria_alimento LIKE ? OR r.nombre_comercial LIKE ?)`; params.push(`%${busqueda}%`, `%${busqueda}%`, `%${busqueda}%`); }
+    if (categoria || busqueda) {
+        q += ` AND r.id_usuario IN (SELECT id FROM usuarios WHERE estado_verificacion = 'aprobado')`;
+        if (categoria) { 
+            q += ` AND (r.categoria = ? OR p.categoria_alimento = ?)`; 
+            params.push(categoria, categoria); 
+        }
+        if (busqueda) { 
+            q += ` AND (p.nombre LIKE ? OR p.categoria_alimento LIKE ? OR r.nombre_comercial LIKE ?)`; 
+            params.push(`%${busqueda}%`, `%${busqueda}%`, `%${busqueda}%`); 
+        }
+    } else {
+        q += ` AND p.id_restaurante IN (?)`;
+        params.push(restIds);
+    }
 
     const [platillos] = await pool.query(q, params);
-    res.json({ restaurantes: cercanos, platillos });
+    
+    // Adjuntar distancia calculada a cada platillo para mostrar en la interfaz y ordenar de más cercano a más lejano
+    const platillosConDist = platillos.map(p => {
+        const dist = calcularDistanciaKm(uLat, uLng, Number(p.rest_lat), Number(p.rest_lng));
+        return { ...p, distancia: parseFloat(dist.toFixed(2)) };
+    }).sort((a, b) => a.distancia - b.distancia);
+
+    let restaurantesRespuesta = cercanos;
+    if (categoria || busqueda) {
+        const matchRestIds = new Set(platillosConDist.map(p => p.id_restaurante));
+        const matchedRests = conDistancia.filter(r => matchRestIds.has(r.id));
+        restaurantesRespuesta = matchedRests.length > 0 ? matchedRests : cercanos;
+    }
+
+    res.json({ restaurantes: restaurantesRespuesta, platillos: platillosConDist });
 });
 
-// --- PEDIDOS (BLINDADOS) ---
+// --- PEDIDOS (BLINDADOS CONTRA ESTRÉS Y CONDICIONES DE CARRERA) ---
 app.post('/api/pedidos', soloRol('cliente'), async (req, res) => {
-    const id_cliente = req.user.id, { id_restaurante, id_platillo } = req.body;
-    const cantidad = Math.min(MAX_POR_PEDIDO, Math.max(1, parseInt(req.body.cantidad) || 1));
-    const [cli] = await pool.query('SELECT strikes FROM usuarios WHERE id = ?', [id_cliente]);
-    if (cli[0] && cli[0].strikes >= 3) return res.status(403).json({ error: "Cuenta bloqueada: 3 strikes por pedidos no reclamados." });
-    const [act] = await pool.query("SELECT id FROM pedidos WHERE id_cliente = ? AND estado = 'activo'", [id_cliente]);
-    if (act.length > 0) return res.status(400).json({ error: "Ya tienes un pedido activo." });
+    const id_cliente = req.user.id;
+    const id_restaurante = parseInt(req.body.id_restaurante, 10);
+    const id_platillo = parseInt(req.body.id_platillo, 10);
+    const cantidad = Math.min(MAX_POR_PEDIDO, Math.max(1, parseInt(req.body.cantidad, 10) || 1));
+
+    if (!id_restaurante || !id_platillo || isNaN(id_restaurante) || isNaN(id_platillo)) {
+        return res.status(400).json({ error: "Datos del restaurante o platillo inválidos." });
+    }
+
     const conn = await pool.getConnection();
-    try { // descontar stock + crear pedido son una sola operación atómica
+    try {
         await conn.beginTransaction();
-        const [up] = await conn.query('UPDATE platillos SET disponibles = disponibles - ? WHERE id = ? AND id_restaurante = ? AND disponibles >= ?', [cantidad, id_platillo, id_restaurante, cantidad]);
-        if (up.affectedRows === 0) { await conn.rollback(); return res.status(400).json({ error: "Platillo agotado" }); }
+
+        // 1. Bloqueo de fila del usuario FOR UPDATE para evitar carreras concurrentes en múltiples pestañas
+        const [cli] = await conn.query('SELECT strikes FROM usuarios WHERE id = ? FOR UPDATE', [id_cliente]);
+        if (!cli.length) {
+            await conn.rollback();
+            return res.status(404).json({ error: "Usuario no encontrado." });
+        }
+        if (cli[0].strikes >= 3) {
+            await conn.rollback();
+            return res.status(403).json({ error: "Cuenta bloqueada: 3 strikes por pedidos no reclamados." });
+        }
+
+        // 2. Verificar pedidos activos bajo bloqueo
+        const [act] = await conn.query("SELECT id FROM pedidos WHERE id_cliente = ? AND estado = 'activo' FOR UPDATE", [id_cliente]);
+        if (act.length > 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: "Ya tienes un pedido activo en curso. Debes recogerlo o cancelarlo primero." });
+        }
+
+        // 3. Descontar stock de forma estrictamente atómica
+        const [up] = await conn.query(
+            'UPDATE platillos SET disponibles = disponibles - ? WHERE id = ? AND id_restaurante = ? AND disponibles >= ?',
+            [cantidad, id_platillo, id_restaurante, cantidad]
+        );
+        if (up.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: "Platillo agotado o sin el stock solicitado." });
+        }
+
         const codigo = await generarCodigoUnico();
-        const [r] = await conn.query(`INSERT INTO pedidos (id_cliente, id_restaurante, id_platillo, codigo_unico, fecha_expiracion, estado, solicitud_entrega, cantidad) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ${MINUTOS_RECLAMO} MINUTE), "activo", "ninguna", ?)`, [id_cliente, id_restaurante, id_platillo, codigo, cantidad]);
+        const [r] = await conn.query(
+            `INSERT INTO pedidos (id_cliente, id_restaurante, id_platillo, codigo_unico, fecha_expiracion, estado, solicitud_entrega, cantidad) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL ${MINUTOS_RECLAMO} MINUTE), "activo", "ninguna", ?)`,
+            [id_cliente, id_restaurante, id_platillo, codigo, cantidad]
+        );
+
         await conn.commit();
         res.json({ success: true, codigo, id_pedido: r.insertId, segundos: MINUTOS_RECLAMO * 60 });
-    } catch (e) { await conn.rollback(); throw e; } finally { conn.release(); }
+    } catch (e) {
+        await conn.rollback().catch(() => {});
+        console.error("Error crítico al procesar pedido:", e.message);
+        res.status(500).json({ error: "Error interno al procesar el pedido. Intenta nuevamente." });
+    } finally {
+        conn.release();
+    }
 });
+
+// --- CANCELACIÓN POR EL CLIENTE (SIN STRIKES, AJUSTE LEVE DE REPUTACIÓN) ---
+app.post('/api/pedidos/cancelar', soloRol('cliente'), async (req, res) => {
+    const id_cliente = req.user.id;
+    const id_pedido = parseInt(req.body.id_pedido, 10);
+    const motivo = String(req.body.motivo || 'No puedo llegar a tiempo').trim().slice(0, 100);
+    const detalle = String(req.body.detalle || '').trim().slice(0, 200);
+    const motivoFinal = detalle ? `${motivo}: ${detalle}` : motivo;
+
+    if (!id_pedido || isNaN(id_pedido)) return res.status(400).json({ error: 'ID de pedido inválido' });
+
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        // 1. Obtener y bloquear el pedido
+        const [pedidos] = await conn.query(
+            "SELECT p.id, p.id_platillo, p.id_restaurante, p.codigo_unico, COALESCE(p.cantidad, 1) AS cantidad, rt.id_usuario AS id_usuario_rest, rt.nombre_comercial FROM pedidos p JOIN restaurantes rt ON p.id_restaurante = rt.id WHERE p.id = ? AND p.id_cliente = ? AND p.estado = 'activo' FOR UPDATE",
+            [id_pedido, id_cliente]
+        );
+
+        if (pedidos.length === 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'El pedido ya no está activo o ya fue procesado.' });
+        }
+
+        const pedido = pedidos[0];
+
+        // 2. Marcar pedido como cancelado_cliente
+        const [up] = await conn.query(
+            "UPDATE pedidos SET estado = 'cancelado_cliente', motivo_cancelacion = ? WHERE id = ? AND estado = 'activo'",
+            [motivoFinal, id_pedido]
+        );
+
+        if (up.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'No se pudo cancelar el pedido (cambio de estado concurrente).' });
+        }
+
+        // 3. Restaurar stock al platillo
+        if (pedido.id_platillo) {
+            await conn.query(
+                "UPDATE platillos SET disponibles = disponibles + ? WHERE id = ?",
+                [pedido.cantidad, pedido.id_platillo]
+            );
+        }
+
+        // 4. Ajustar reputación levemente (-0.1 estrellas y -3 puntos) SIN aplicar strikes
+        await conn.query(
+            "UPDATE usuarios SET estrellas = GREATEST(1.0, ROUND(estrellas - 0.1, 1)), puntaje = GREATEST(0, puntaje - 3) WHERE id = ?",
+            [id_cliente]
+        );
+
+        // 5. Notificar al restaurante
+        if (pedido.id_usuario_rest) {
+            await conn.query(
+                "INSERT INTO notificaciones (id_usuario, titulo, mensaje, icono) VALUES (?, ?, ?, ?)",
+                [
+                    pedido.id_usuario_rest,
+                    'Drop Cancelado por Cliente',
+                    `El cliente canceló el pedido #${pedido.codigo_unico}. Motivo: "${motivoFinal}". El stock ha sido devuelto a tu menú.`,
+                    'fa-ban'
+                ]
+            );
+        }
+
+        // 6. Notificar al cliente confirmando cancelación sin strikes
+        await conn.query(
+            "INSERT INTO notificaciones (id_usuario, titulo, mensaje, icono) VALUES (?, ?, ?, ?)",
+            [
+                id_cliente,
+                'Pedido Cancelado a Tiempo',
+                `Cancelaste el pedido #${pedido.codigo_unico}. Tu inventario fue liberado. No recibiste strikes (tu reputación se ajustó -0.1⭐).`,
+                'fa-check-circle'
+            ]
+        );
+
+        await conn.commit();
+        res.json({ success: true, mensaje: 'Pedido cancelado con éxito sin strikes.' });
+    } catch (e) {
+        await conn.rollback().catch(() => {});
+        console.error("Error al cancelar pedido:", e.message);
+        res.status(500).json({ error: "Error al cancelar el pedido." });
+    } finally {
+        conn.release();
+    }
+});
+
+// --- CANCELACIÓN POR EL RESTAURANTE (MOTIVO POR ESCRITO OBLIGATORIO) ---
+app.post('/api/pedidos/cancelar-restaurante', soloRol('restaurante'), async (req, res) => {
+    const id_restaurante = req.user.id_restaurante;
+    const id_pedido = parseInt(req.body.id_pedido, 10);
+    const motivo = String(req.body.motivo || '').trim().slice(0, 255);
+
+    if (!id_pedido || isNaN(id_pedido)) return res.status(400).json({ error: 'ID de pedido inválido' });
+    if (!motivo || motivo.length < 4) return res.status(400).json({ error: 'Debes explicar el motivo de la cancelación por escrito (mínimo 4 caracteres).' });
+
+    const conn = await pool.getConnection();
+    try {
+        await conn.beginTransaction();
+
+        const [pedidos] = await conn.query(
+            "SELECT p.id, p.id_cliente, p.id_platillo, p.codigo_unico, COALESCE(p.cantidad, 1) AS cantidad, rt.nombre_comercial FROM pedidos p JOIN restaurantes rt ON p.id_restaurante = rt.id WHERE p.id = ? AND p.id_restaurante = ? AND p.estado = 'activo' FOR UPDATE",
+            [id_pedido, id_restaurante]
+        );
+
+        if (pedidos.length === 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'El pedido no pertenece a este local o ya no está activo.' });
+        }
+
+        const pedido = pedidos[0];
+
+        const [up] = await conn.query(
+            "UPDATE pedidos SET estado = 'cancelado_restaurante', motivo_cancelacion = ? WHERE id = ? AND estado = 'activo'",
+            [motivo, id_pedido]
+        );
+
+        if (up.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(400).json({ error: 'El pedido ya no está activo.' });
+        }
+
+        // Restablecer stock al platillo
+        if (pedido.id_platillo) {
+            await conn.query(
+                "UPDATE platillos SET disponibles = disponibles + ? WHERE id = ?",
+                [pedido.cantidad, pedido.id_platillo]
+            );
+        }
+
+        // Notificar al cliente con la explicación por escrito (SIN STRIKES)
+        await conn.query(
+            "INSERT INTO notificaciones (id_usuario, titulo, mensaje, icono) VALUES (?, ?, ?, ?)",
+            [
+                pedido.id_cliente,
+                'Pedido Cancelado por el Restaurante',
+                `${pedido.nombre_comercial} canceló tu drop #${pedido.codigo_unico}. Motivo: "${motivo}". Esta acción no afecta tus strikes.`,
+                'fa-store-slash'
+            ]
+        );
+
+        await conn.commit();
+        res.json({ success: true, mensaje: 'Pedido cancelado por el restaurante.' });
+    } catch (e) {
+        await conn.rollback().catch(() => {});
+        console.error("Error al cancelar por restaurante:", e.message);
+        res.status(500).json({ error: "Error al cancelar el pedido." });
+    } finally {
+        conn.release();
+    }
+});
+
 app.post('/api/pedidos/solicitar', async (req, res) => {
-    await pool.query('UPDATE pedidos SET solicitud_entrega = "pendiente" WHERE id = ? AND id_cliente = ? AND estado = "activo"', [req.body.id_pedido, req.user.id]);
+    const id_pedido = parseInt(req.body.id_pedido, 10);
+    if (!id_pedido) return res.status(400).json({ error: 'ID de pedido inválido' });
+    await pool.query('UPDATE pedidos SET solicitud_entrega = "pendiente" WHERE id = ? AND id_cliente = ? AND estado = "activo"', [id_pedido, req.user.id]);
     res.json({ success: true });
 });
+
 app.get('/api/pedidos/activo/:id_cliente', soloYo, async (req, res) => {
-    const [r] = await pool.query("SELECT p.id, p.codigo_unico, p.id_restaurante, p.solicitud_entrega, rt.nombre_comercial AS restaurante, GREATEST(TIMESTAMPDIFF(SECOND, NOW(), p.fecha_expiracion), 0) AS segundos_restantes FROM pedidos p JOIN restaurantes rt ON p.id_restaurante = rt.id WHERE p.id_cliente = ? AND p.estado = 'activo' ORDER BY p.id DESC LIMIT 1", [req.params.id_cliente]);
+    const [r] = await pool.query(
+        "SELECT p.id, p.codigo_unico, p.id_restaurante, p.id_platillo, p.solicitud_entrega, p.estado, p.motivo_cancelacion, rt.nombre_comercial AS restaurante, GREATEST(TIMESTAMPDIFF(SECOND, NOW(), p.fecha_expiracion), 0) AS segundos_restantes FROM pedidos p JOIN restaurantes rt ON p.id_restaurante = rt.id WHERE p.id_cliente = ? AND p.estado = 'activo' ORDER BY p.id DESC LIMIT 1",
+        [req.params.id_cliente]
+    );
     res.json(r[0] || {});
 });
+
 app.get('/api/pedidos/estado/:id_pedido', async (req, res) => {
-    const [r] = await pool.query('SELECT solicitud_entrega, estado, GREATEST(TIMESTAMPDIFF(SECOND, NOW(), fecha_expiracion), 0) AS segundos_restantes FROM pedidos WHERE id = ? AND id_cliente = ?', [req.params.id_pedido, req.user.id]);
+    const id = parseInt(req.params.id_pedido, 10);
+    if (!id) return res.status(400).json({ error: 'ID inválido' });
+    const [r] = await pool.query(
+        'SELECT solicitud_entrega, estado, motivo_cancelacion, GREATEST(TIMESTAMPDIFF(SECOND, NOW(), fecha_expiracion), 0) AS segundos_restantes FROM pedidos WHERE id = ? AND id_cliente = ?',
+        [id, req.user.id]
+    );
     res.json(r[0] || {});
 });
+
 app.post('/api/pedidos/responder', async (req, res) => {
-    const { id_pedido, accion } = req.body;
+    const { id_pedido, accion, motivo } = req.body;
     if (!['aceptada', 'rechazada'].includes(accion)) return res.status(400).json({ error: 'Acción inválida' });
-    const [mio] = await pool.query('SELECT id_cliente FROM pedidos WHERE id = ? AND id_restaurante = ?', [id_pedido, req.user.id_restaurante]);
+    const [mio] = await pool.query('SELECT id_cliente, id_platillo, codigo_unico FROM pedidos WHERE id = ? AND id_restaurante = ?', [id_pedido, req.user.id_restaurante]);
     if (mio.length === 0) return res.status(403).json({ error: 'No autorizado' });
-    const id_cliente = mio[0].id_cliente;
-    const est = accion === 'aceptada' ? 'entregado' : 'cancelado';
+    const { id_cliente, id_platillo, codigo_unico } = mio[0];
+    const est = accion === 'aceptada' ? 'entregado' : 'cancelado_restaurante';
+    const motivoTexto = accion === 'rechazada' ? String(motivo || 'Cancelado por el restaurante al momento de entrega').trim().slice(0, 255) : null;
     
-    const [up] = await pool.query("UPDATE pedidos SET solicitud_entrega = ?, estado = ? WHERE id = ? AND estado = 'activo'", [accion, est, id_pedido]);
+    const [up] = await pool.query("UPDATE pedidos SET solicitud_entrega = ?, estado = ?, motivo_cancelacion = ? WHERE id = ? AND estado = 'activo'", [accion, est, motivoTexto, id_pedido]);
     if (up.affectedRows === 0) return res.status(400).json({ error: "El pedido ya no está activo (expiró o ya fue atendido)." });
-    if (accion !== 'aceptada') await pool.query('UPDATE platillos SET disponibles = disponibles + (SELECT COALESCE(cantidad, 1) FROM pedidos WHERE id = ?) WHERE id = (SELECT id_platillo FROM pedidos WHERE id = ?)', [id_pedido, id_pedido]);
+    
+    if (accion !== 'aceptada') {
+        await pool.query('UPDATE platillos SET disponibles = disponibles + (SELECT COALESCE(cantidad, 1) FROM pedidos WHERE id = ?) WHERE id = ?', [id_pedido, id_platillo]);
+        await pool.query(
+            "INSERT INTO notificaciones (id_usuario, titulo, mensaje, icono) VALUES (?, ?, ?, ?)",
+            [id_cliente, 'Entrega Cancelada por el Restaurante', `El restaurante no pudo completar la entrega del pedido #${codigo_unico}. ${motivoTexto ? 'Motivo: ' + motivoTexto : ''}`, 'fa-store-slash']
+        );
+    }
     
     if (accion === 'aceptada') {
         await pool.query('UPDATE usuarios SET puntaje = puntaje + 10 WHERE id = ?', [id_cliente]);
